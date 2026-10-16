@@ -32,10 +32,10 @@ class FitPro extends StatelessWidget {
       valueListenable: themeMode,
       builder: (c, m, _) => MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'فيت برو',
+        title: 'Muslim-Fit-pro',
         builder: (c, w) => Directionality(textDirection: TextDirection.rtl, child: w!),
-        theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFFFF6B35)),
-        darkTheme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFFFF6B35), brightness: Brightness.dark),
+        theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF0B6B4D)),
+        darkTheme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF0B6B4D), brightness: Brightness.dark),
         themeMode: m,
         home: const Home(),
       ));
@@ -51,7 +51,7 @@ class _HomeState extends State<Home> {
   int i = 0;
   @override
   Widget build(BuildContext c) => Scaffold(
-        appBar: AppBar(title: const Text('فيت برو 💪'), actions: [
+        appBar: AppBar(title: const Text('Muslim-Fit-pro'), actions: [
           IconButton(
             tooltip: 'الوضع الفاتح/الداكن',
             icon: Icon(Theme.of(c).brightness == Brightness.dark ? Icons.light_mode : Icons.dark_mode),

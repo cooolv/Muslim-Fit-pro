@@ -1,54 +1,43 @@
-# 💪 فيت برو (FitPro)
+# 🕌💪 Muslim-Fit-pro
 
 تطبيق تمارين مجاني بالكامل، واجهة عربية، يعمل على **أندرويد** و**ويندوز** من كود واحد (Flutter).
+شخصيات التمارين مرسومة بوجه مطموس وتتحرك برمجيًا بالزوايا (Rigging) — لا حاجة لملفات GIF.
 
 ## المميزات
-- تمارين بدون أدوات / دمبل / جيم مع خطوات الأداء ونصائح
-- فلترة، انتقالات وأنيميشن سلس (Hero + Fade)
-- مجموعات تمارين خاصة بك: **خاصة** أو **عامة** للجميع (Firestore)
-- مؤقت راحة، تسجيل المجموعات (عدّات/وزن)، وصفحة تقدّم برسم بياني لآخر 7 أيام
-- بحث بالاسم أو العضلة، و3 خطط جاهزة (جسم كامل / دمبل / PPL) تُحفظ بضغطة في مجموعاتك
-- 31 تمرينًا قابلة للتوسعة، ووضع فاتح/داكن بزر في الشريط العلوي
-- صور GIF لكل تمرين (تضيفها بنفسك، انظر أدناه)
+- 31 تمرينًا (بدون أدوات / دمبل / جيم) بخطوات الأداء والنصائح، مع بحث وفلترة
+- حركة شخصية سلسة لكل تمرين له Rig (حاليًا 6 تمارين، والباقي قيد الإضافة)
+- 3 خطط جاهزة، مجموعات تمارين خاصة أو عامة، مؤقت راحة
+- تسجيل المجموعات (عدّات/وزن) وصفحة تقدّم لآخر 7 أيام
+- وضع فاتح/داكن • مجاني بلا إعلانات
 
 ## 📥 التحميل
-من صفحة **Releases** في المستودع:
-- `FitPro-Android.apk` — ثبّته على الهاتف (اسمح بالتثبيت من مصدر غير معروف)
-- `FitPro-Windows.zip` — فك الضغط وشغّل `fitpro.exe`
+من صفحة **Releases**: `Muslim-Fit-pro-Android.apk` و`Muslim-Fit-pro-Windows.zip`.
 
-## ⚙️ التجهيز (مرة واحدة)
-1. أنشئ مشروعًا في [Firebase Console](https://console.firebase.google.com) (الخطة المجانية Spark).
-2. فعّل **Firestore Database** و **Authentication ← Anonymous**.
-3. الصق محتوى `firestore.rules` في تبويب Rules.
-4. أضف **Web app** للمشروع وانسخ قيمه.
-5. في GitHub: *Settings → Secrets and variables → Actions* وأضف:
+## ⚙️ الإعداد
+1. Firebase: فعّل **Firestore** و**Authentication ← Anonymous**، والصق `firestore.rules` في Rules.
+2. GitHub ← *Settings → Secrets → Actions*: `FB_API_KEY`, `FB_APP_ID`, `FB_SENDER_ID`, `FB_PROJECT_ID`.
+3. إصدار: `git tag v1.0.1 && git push origin v1.0.1` (أو شغّل Workflow يدويًا من Actions).
 
-| Secret | القيمة |
-|---|---|
-| `FB_API_KEY` | apiKey |
-| `FB_APP_ID` | appId |
-| `FB_SENDER_ID` | messagingSenderId |
-| `FB_PROJECT_ID` | projectId |
+> مفاتيح Firebase للعميل ليست أسرارًا مطلقة؛ الحماية الحقيقية هي قواعد Firestore. قيّد الـ API key من Google Cloud Console على تطبيقك.
 
-> المفاتيح لا تُكتب في الكود أبدًا؛ تُحقن وقت البناء. ملاحظة: مفاتيح Firebase للعملاء ليست أسرارًا مطلقة،
-> والحماية الحقيقية هي **قواعد Firestore** الموجودة في المشروع.
-
-## 🚀 إصدار نسخة
+## 🚀 النشر على Google Play
+1. أنشئ مفتاح التوقيع **مرة واحدة** واحتفظ به في مكان آمن (لا ترفعه للمستودع):
 ```bash
-git tag v1.0.0 && git push origin v1.0.0
+keytool -genkey -v -keystore upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
 ```
-سيبني GitHub Actions النسختين ويرفعهما في Releases تلقائيًا. (أو شغّل Workflow يدويًا من تبويب Actions.)
+2. حوّله إلى base64: Linux/Mac `base64 -w0 upload.jks` — PowerShell `[Convert]::ToBase64String([IO.File]::ReadAllBytes("upload.jks"))`
+3. أضف Secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD`, `ANDROID_KEY_ALIAS` (= upload).
+4. ارفع tag جديد → سيظهر `Muslim-Fit-pro-PlayStore.aab` في Releases. ارفعه في Play Console (فعّل Play App Signing).
+5. المطلوب في المتجر: سياسة الخصوصية (`PRIVACY.md` — انشرها عبر GitHub Pages أو رابط Raw)، نموذج Data safety، تصنيف المحتوى، لقطات شاشة، أيقونة 512، وصورة مميزة 1024×500.
 
-## 🖼️ إضافة صور GIF
-ضع ملف `assets/gifs/<id>.gif` لكل تمرين (مثال: `pushup.gif`)، والـ id موجود في `lib/data.dart`.
-يُفضَّل رسوم كرتونية بوجه مطموس من مصدر **تملك ترخيصه** أو ترسمه بنفسك.
+> ⚠️ معرّف التطبيق الحالي `com.muslimfit.muslim_fit_pro` **لا يتغير بعد النشر**. غيّره قبل أول رفع إن أردت (`--org` في `build.yml`).
 
-## ➕ إضافة تمارين
-أضف عنصرًا جديدًا في قائمة `exercises` داخل `lib/data.dart`.
+## 🎬 تحريك الشخصية
+- الأجزاء في `assets/rig/` ومحاورها في `lib/parts_data.dart`.
+- زوايا كل تمرين في `rigs` داخل `lib/rig.dart` (0=يمين، 90=أسفل، -90=أعلى). عدّلها لضبط الحركة.
 
 ## 🧪 تشغيل محلي
 ```bash
-flutter create . --platforms=android,windows
-flutter run --dart-define=FB_API_KEY=... --dart-define=FB_APP_ID=... \
-  --dart-define=FB_SENDER_ID=... --dart-define=FB_PROJECT_ID=...
+flutter create . --platforms=android,windows --org com.muslimfit
+flutter run --dart-define=FB_API_KEY=... --dart-define=FB_APP_ID=... --dart-define=FB_SENDER_ID=... --dart-define=FB_PROJECT_ID=...
 ```

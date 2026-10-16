@@ -1,7 +1,10 @@
 import 'dart:math' as m;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'parts_data.dart';
 
-/// وضعية الجسم: كل زاوية بالدرجات في اتجاه الشاشة (0=يمين، 90=أسفل، -90=أعلى)، والشخصية تنظر لليمين.
+/// وضعية الجسم. الزوايا بالدرجات على الشاشة: 0=يمين، 90=أسفل، -90=أعلى (الشخصية تنظر لليمين).
 /// الترتيب: الجذع، الرأس، العضد، الساعد، الفخذ، الساق، القدم
 class Pose {
   final double torso, head, ua, fa, th, sh, ft;
@@ -13,20 +16,80 @@ class Pose {
 }
 
 class Rig {
-  final Pose a, b; // البداية والنهاية (الحركة ذهابًا وإيابًا)
+  final Pose a, b; // البداية والنهاية (ذهابًا وإيابًا)
   final bool dumbbell;
-  const Rig(this.a, this.b, {this.dumbbell = false});
+  final double? handAbs; // زاوية اليد المطلقة (وإلا تتبع الساعد)
+  const Rig(this.a, this.b, {this.dumbbell = false, this.handAbs});
 }
 
 // عدّل الزوايا هنا لضبط أي تمرين بدقة.
 const rigs = <String, Rig>{
-  'pushup': Rig(Pose(-26, -26, 90, 90, 154, 154, 60), Pose(-10, -10, 170, 40, 170, 170, 60)),
+  'pushup': Rig(Pose(-32, -32, 90, 90, 148, 148, 65), Pose(-5, -5, 170, 38, 175, 175, 65), handAbs: 0),
   'squat': Rig(Pose(-90, -90, 90, 90, 90, 90, 0), Pose(-60, -60, 0, 0, 10, 100, 0)),
   'dbcurl': Rig(Pose(-90, -90, 90, 90, 90, 90, 0), Pose(-90, -90, 90, -50, 90, 90, 0), dumbbell: true),
   'dbpress': Rig(Pose(-90, -90, 90, -90, 90, 90, 0), Pose(-90, -90, -90, -90, 90, 90, 0), dumbbell: true),
-  'situp': Rig(Pose(0, 0, 0, 0, -125, 110, 170), Pose(-65, -65, 0, 0, -125, 110, 170)),
-  'glute': Rig(Pose(0, 0, 0, 0, -125, 110, 170), Pose(15, 15, 15, 15, -160, 130, 170)),
+  'situp': Rig(Pose(180, 180, 0, 0, -55, 75, 0), Pose(310, 310, 0, 0, -55, 75, 0)),
+  'glute': Rig(Pose(180, 180, 0, 0, -55, 75, 0), Pose(160, 160, 0, 0, -20, 49, 0)),
 };
+
+class Sprites {
+  static Future<Map<String, ui.Image>>? _f;
+  static Future<Map<String, ui.Image>> load() => _f ??= () async {
+        final r = <String, ui.Image>{};
+        for (final k in partMeta.keys) {
+          final d = await rootBundle.load('assets/rig/$k.png');
+          final c = await ui.instantiateImageCodec(d.buffer.asUint8List());
+          r[k] = (await c.getNextFrame()).image;
+        }
+        return r;
+      }();
+}
+
+double _len(String k) {
+  final p = partMeta[k]!;
+  return m.sqrt(m.pow(p[4] - p[2], 2) + m.pow(p[5] - p[3], 2));
+}
+
+final double _s = 60 / _len('torso'); // وحدة: الجذع = 60
+double _rad(double d) => d * m.pi / 180;
+Offset _dir(double deg, double len) => Offset(len * m.cos(_rad(deg)), len * m.sin(_rad(deg)));
+double _rot(String k, double theta) {
+  final p = partMeta[k]!;
+  return theta - m.atan2(p[5] - p[3], p[4] - p[2]) * 180 / m.pi;
+}
+
+List<Offset> _corners(String k, Offset pos, double theta) {
+  final p = partMeta[k]!;
+  final r = _rad(_rot(k, theta));
+  return [for (final c in [Offset(0, 0), Offset(p[0], 0), Offset(p[0], p[1]), Offset(0, p[1])])
+    pos + Offset(((c.dx - p[2]) * m.cos(r) - (c.dy - p[3]) * m.sin(r)) * _s, ((c.dx - p[2]) * m.sin(r) + (c.dy - p[3]) * m.cos(r)) * _s)];
+}
+
+class _Geo {
+  final List<(String, Offset, double)> parts;
+  final Offset ankle, wrist;
+  final double hand, ground;
+  final Rect bounds; // نسبةً لموضع الكاحل والأرض
+  _Geo(this.parts, this.ankle, this.wrist, this.hand, this.ground, this.bounds);
+}
+
+_Geo _geo(Pose p, Rig r) {
+  double L(String k) => _len(k) * _s;
+  const hip = Offset.zero;
+  final neck = hip + _dir(p.torso, L('torso')), sho = hip + _dir(p.torso, L('torso') * .83);
+  final knee = hip + _dir(p.th, L('thigh')), ankle = knee + _dir(p.sh, L('shin'));
+  final elbow = sho + _dir(p.ua, L('uarm')), wrist = elbow + _dir(p.fa, L('farm'));
+  final hand = r.handAbs ?? p.fa;
+  final parts = <(String, Offset, double)>[
+    ('foot', ankle, p.ft), ('shin', knee, p.sh), ('thigh', hip, p.th), ('torso', hip, p.torso),
+    ('head', neck, p.head), ('hand', wrist, hand), ('farm', elbow, p.fa), ('uarm', sho, p.ua),
+  ];
+  final all = [for (final x in parts) ..._corners(x.$1, x.$2, x.$3)];
+  final contact = [..._corners('foot', ankle, p.ft), ..._corners('hand', wrist, hand), hip + const Offset(0, 13), neck + const Offset(0, 13), knee + const Offset(0, 9), elbow + const Offset(0, 7)];
+  final ground = contact.map((o) => o.dy).reduce(m.max);
+  final b = all.fold<Rect?>(null, (a, o) => a == null ? Rect.fromLTWH(o.dx, o.dy, 0, 0) : a.expandToInclude(Rect.fromLTWH(o.dx, o.dy, 0, 0)))!;
+  return _Geo(parts, ankle, wrist, hand, ground, b.shift(Offset(-ankle.dx, -ground)));
+}
 
 class RigView extends StatefulWidget {
   final Rig rig;
@@ -37,7 +100,16 @@ class RigView extends StatefulWidget {
 }
 
 class _RigViewState extends State<RigView> with SingleTickerProviderStateMixin {
-  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))..repeat();
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 2600))..repeat();
+  Map<String, ui.Image>? _img;
+  @override
+  void initState() {
+    super.initState();
+    Sprites.load().then((v) {
+      if (mounted) setState(() => _img = v);
+    });
+  }
+
   @override
   void dispose() {
     _c.dispose();
@@ -47,50 +119,54 @@ class _RigViewState extends State<RigView> with SingleTickerProviderStateMixin {
   @override
   Widget build(BuildContext context) => SizedBox(
         width: widget.size, height: widget.size,
-        child: AnimatedBuilder(
-          animation: _c,
-          builder: (_, __) {
-            final tri = _c.value < .5 ? _c.value * 2 : (1 - _c.value) * 2;
-            final p = Pose.lerp(widget.rig.a, widget.rig.b, Curves.easeInOut.transform(tri));
-            return CustomPaint(painter: _RigPainter(p, widget.rig.dumbbell, Theme.of(context).colorScheme.primary));
-          },
-        ),
+        child: _img == null
+            ? const SizedBox.shrink()
+            : AnimatedBuilder(
+                animation: _c,
+                builder: (_, __) {
+                  final tri = _c.value < .5 ? _c.value * 2 : (1 - _c.value) * 2;
+                  return CustomPaint(painter: _P(widget.rig, Curves.easeInOut.transform(tri), _img!));
+                }),
       );
 }
 
-class _RigPainter extends CustomPainter {
-  final Pose p;
-  final bool db;
-  final Color shirt;
-  _RigPainter(this.p, this.db, this.shirt);
-  Offset _d(double deg, double len) => Offset(len * m.cos(deg * m.pi / 180), len * m.sin(deg * m.pi / 180));
-
+class _P extends CustomPainter {
+  final Rig r;
+  final double t;
+  final Map<String, ui.Image> img;
+  _P(this.r, this.t, this.img);
   @override
-  void paint(Canvas cv, Size s) {
-    const hip = Offset.zero;
-    final neck = hip + _d(p.torso, 60), head = neck + _d(p.head, 20);
-    final elbow = neck + _d(p.ua, 32), wrist = elbow + _d(p.fa, 30);
-    final knee = hip + _d(p.th, 42), ankle = knee + _d(p.sh, 40), toe = ankle + _d(p.ft, 14);
-    final ground = [hip, neck, elbow, wrist, knee, ankle, toe].map((o) => o.dy).reduce(m.max);
+  void paint(Canvas cv, Size sz) {
+    final g = _geo(Pose.lerp(r.a, r.b, t), r);
+    final u = _geo(r.a, r).bounds.expandToInclude(_geo(r.b, r).bounds).inflate(6); // إطار ثابت للحركة كلها
+    final k = m.min(sz.width / u.width, sz.height / u.height);
     cv.save();
-    cv.translate(s.width / 2, s.height * .86);
-    cv.scale(s.height / 200);
-    cv.translate(-ankle.dx, -ground); // القدم ثابتة والأرض ثابتة
-    void line(Offset a, Offset b, double w, Color c) =>
-        cv.drawLine(a, b, Paint()..color = c..strokeWidth = w..strokeCap = StrokeCap.round);
-    line(Offset(ankle.dx - 150, ground + 6), Offset(ankle.dx + 150, ground + 6), 3, Colors.grey);
-    const skin = Color(0xFFE8B98A), pants = Color(0xFF455A64);
-    line(hip, knee, 12, pants);
-    line(knee, ankle, 10, pants);
-    line(ankle, toe, 9, Colors.white70);
-    line(hip, neck, 16, shirt);
-    line(neck, elbow, 9, skin);
-    line(elbow, wrist, 8, skin);
-    if (db) cv.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: wrist, width: 24, height: 9), const Radius.circular(3)), Paint()..color = Colors.blueGrey);
-    cv.drawCircle(head, 13, Paint()..color = skin); // وجه مطموس
+    cv.translate(sz.width / 2 - k * u.center.dx, sz.height / 2 - k * u.center.dy);
+    cv.scale(k);
+    cv.translate(-g.ankle.dx, -g.ground);
+    cv.drawLine(Offset(g.ankle.dx + u.left, g.ground), Offset(g.ankle.dx + u.right, g.ground), Paint()..color = Colors.grey.withValues(alpha: .5)..strokeWidth = 2);
+    final paint = Paint()..filterQuality = FilterQuality.high..isAntiAlias = true;
+    for (final (name, pos, theta) in g.parts) {
+      final p = partMeta[name]!;
+      cv.save();
+      cv.translate(pos.dx, pos.dy);
+      cv.rotate(_rad(_rot(name, theta)));
+      cv.scale(_s);
+      cv.drawImage(img[name]!, Offset(-p[2], -p[3]), paint);
+      cv.restore();
+      if (name == 'hand' && r.dumbbell) {
+        cv.save();
+        cv.translate(g.wrist.dx, g.wrist.dy);
+        cv.rotate(_rad(g.hand));
+        cv.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: const Offset(0, 10), width: 30, height: 7), const Radius.circular(3)), Paint()..color = const Color(0xFF37474F));
+        cv.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: const Offset(-14, 10), width: 6, height: 17), const Radius.circular(2)), Paint()..color = const Color(0xFF263238));
+        cv.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: const Offset(14, 10), width: 6, height: 17), const Radius.circular(2)), Paint()..color = const Color(0xFF263238));
+        cv.restore();
+      }
+    }
     cv.restore();
   }
 
   @override
-  bool shouldRepaint(_RigPainter o) => o.p != p;
+  bool shouldRepaint(_P o) => o.t != t;
 }
