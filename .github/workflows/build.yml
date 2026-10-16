@@ -14,30 +14,56 @@ env:
 jobs:
   android:
     runs-on: ubuntu-latest
+    env:
+      HAS_KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17' }
       - uses: subosito/flutter-action@v2
         with: { channel: stable, cache: true }
-      - run: flutter create . --platforms=android --project-name fitpro --org com.fitpro
+      - run: flutter create . --platforms=android --org com.muslimfit
       - run: flutter pub get
+      - run: dart run flutter_launcher_icons
+      - run: sed -i 's/android:label="[^"]*"/android:label="Muslim-Fit-pro"/' android/app/src/main/AndroidManifest.xml
+      - name: Release signing (اختياري)
+        if: env.HAS_KS == 'true'
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/upload.jks
+          cat > android/key.properties <<KP
+          storePassword=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.ANDROID_KEY_PASSWORD }}
+          keyAlias=${{ secrets.ANDROID_KEY_ALIAS }}
+          storeFile=$GITHUB_WORKSPACE/android/upload.jks
+          KP
+          python3 scripts/patch_android.py
       - run: flutter build apk --release $DEFINES
-      - run: mv build/app/outputs/flutter-apk/app-release.apk FitPro-Android.apk
+      - name: Build AAB لـ Google Play
+        if: env.HAS_KS == 'true'
+        run: flutter build appbundle --release $DEFINES
+      - run: |
+          mkdir out-android
+          mv build/app/outputs/flutter-apk/app-release.apk out-android/Muslim-Fit-pro-Android.apk
+          if [ -f build/app/outputs/bundle/release/app-release.aab ]; then mv build/app/outputs/bundle/release/app-release.aab out-android/Muslim-Fit-pro-PlayStore.aab; fi
       - uses: actions/upload-artifact@v4
-        with: { name: android, path: FitPro-Android.apk }
+        with: { name: android, path: out-android/* }
   windows:
     runs-on: windows-latest
+    env:
+      CMAKE_POLICY_VERSION_MINIMUM: '3.5'
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with: { channel: stable, cache: true }
-      - run: flutter create . --platforms=windows --project-name fitpro --org com.fitpro
+      - run: flutter create . --platforms=windows --org com.muslimfit
       - run: flutter pub get
+      - run: dart run flutter_launcher_icons
+      - run: sed -i 's/L"muslim_fit_pro"/L"Muslim-Fit-pro"/' windows/runner/main.cpp
+        shell: bash
       - run: flutter build windows --release $env:DEFINES
-      - run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath FitPro-Windows.zip
+      - run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath Muslim-Fit-pro-Windows.zip
       - uses: actions/upload-artifact@v4
-        with: { name: windows, path: FitPro-Windows.zip }
+        with: { name: windows, path: Muslim-Fit-pro-Windows.zip }
   release:
     needs: [android, windows]
     runs-on: ubuntu-latest
