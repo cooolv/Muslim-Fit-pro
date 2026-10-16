@@ -1,0 +1,15 @@
+.dart_tool/
+build/
+.flutter-plugins*
+.packages
+*.iml
+.idea/
+android/
+windows/
+ios/
+macos/
+linux/
+web/
+google-services.json
+.env
+*.jks
