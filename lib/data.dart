@@ -84,24 +84,24 @@ const plans = <Plan>[
   }),
 ];
 
-class Step {
+class RStep {
   final String id;
   final int reps, secs; // reps=0 يعني «ثبّت الوضع»
-  const Step(this.id, this.reps, this.secs);
+  const RStep(this.id, this.reps, this.secs);
 }
 
 class Routine {
   final String name, emoji;
-  final List<Step> steps;
+  final List<RStep> steps;
   const Routine(this.name, this.emoji, this.steps);
   int get minutes => (steps.fold<int>(0, (a, s) => a + s.secs) / 60).ceil();
 }
 
 const routines = <Routine>[
-  Routine('تمارين الصباح', '☀️', [Step('squat', 15, 45), Step('pushup', 10, 45), Step('glute', 15, 40), Step('mountain', 20, 40), Step('situp', 15, 40), Step('plank', 0, 40)]),
-  Routine('تمارين المساء', '🌙', [Step('calf', 20, 40), Step('glute', 15, 40), Step('superman', 12, 40), Step('situp', 12, 40), Step('plank', 0, 30)]),
-  Routine('تقوية البطن', '🔥', [Step('situp', 20, 45), Step('mountain', 24, 40), Step('plank', 0, 45), Step('glute', 15, 40), Step('situp', 15, 40)]),
-  Routine('تقوية الذراع', '💪', [Step('pushup', 12, 45), Step('dbcurl', 12, 45), Step('dbtriext', 12, 45), Step('dbpress', 10, 45), Step('dips', 12, 40)]),
-  Routine('تقوية الأرجل', '🦵', [Step('squat', 20, 50), Step('glute', 15, 40), Step('calf', 20, 40), Step('lunge', 12, 45), Step('dbgoblet', 12, 45)]),
-  Routine('الظهر والكتف', '🏋️', [Step('dbrow', 12, 45), Step('dbrdl', 12, 45), Step('superman', 12, 40), Step('dbpress', 10, 45)]),
+  Routine('تمارين الصباح', '☀️', [RStep('squat', 15, 45), RStep('pushup', 10, 45), RStep('glute', 15, 40), RStep('mountain', 20, 40), RStep('situp', 15, 40), RStep('plank', 0, 40)]),
+  Routine('تمارين المساء', '🌙', [RStep('calf', 20, 40), RStep('glute', 15, 40), RStep('superman', 12, 40), RStep('situp', 12, 40), RStep('plank', 0, 30)]),
+  Routine('تقوية البطن', '🔥', [RStep('situp', 20, 45), RStep('mountain', 24, 40), RStep('plank', 0, 45), RStep('glute', 15, 40), RStep('situp', 15, 40)]),
+  Routine('تقوية الذراع', '💪', [RStep('pushup', 12, 45), RStep('dbcurl', 12, 45), RStep('dbtriext', 12, 45), RStep('dbpress', 10, 45), RStep('dips', 12, 40)]),
+  Routine('تقوية الأرجل', '🦵', [RStep('squat', 20, 50), RStep('glute', 15, 40), RStep('calf', 20, 40), RStep('lunge', 12, 45), RStep('dbgoblet', 12, 45)]),
+  Routine('الظهر والكتف', '🏋️', [RStep('dbrow', 12, 45), RStep('dbrdl', 12, 45), RStep('superman', 12, 40), RStep('dbpress', 10, 45)]),
 ];

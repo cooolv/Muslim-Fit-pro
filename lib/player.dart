@@ -8,18 +8,18 @@ import 'data.dart';
 import 'main.dart' show gifOf;
 
 /// يحوّل وثيقة مجموعة من Firestore إلى خطوات (يدعم المجموعات القديمة التي تحتوي ids فقط)
-List<Step> stepsOf(Map<String, dynamic> m) {
+List<RStep> stepsOf(Map<String, dynamic> m) {
   final s = m['steps'];
   if (s is List && s.isNotEmpty) {
-    return [for (final x in s) Step(x['id'] as String, (x['reps'] as num).toInt(), (x['secs'] as num).toInt())];
+    return [for (final x in s) RStep(x['id'] as String, (x['reps'] as num).toInt(), (x['secs'] as num).toInt())];
   }
-  return [for (final id in List<String>.from(m['ids'] ?? [])) Step(id, 12, 40)];
+  return [for (final id in List<String>.from(m['ids'] ?? [])) RStep(id, 12, 40)];
 }
 
 /// مشغّل التمارين: يعدّ الوقت وينتقل تلقائيًا للتالي، مع تخطي/رجوع/إيقاف مؤقت
 class Player extends StatefulWidget {
   final String title;
-  final List<Step> steps;
+  final List<RStep> steps;
   const Player({super.key, required this.title, required this.steps});
   @override
   State<Player> createState() => _PlayerState();
@@ -62,7 +62,7 @@ class _PlayerState extends State<Player> {
     left = widget.steps[i].secs;
   }
 
-  void _log(Step s) {
+  void _log(RStep s) {
     final u = FirebaseAuth.instance.currentUser;
     if (u == null) return;
     FirebaseFirestore.instance.collection('logs').add({
