@@ -24,7 +24,8 @@ jobs:
         with: { channel: stable, cache: true }
       - run: flutter create . --platforms=android --org com.muslimfit
       - run: flutter pub get
-      - run: dart run flutter_launcher_icons
+      - run: rm -f flutter_launcher_icons-*.yaml
+      - run: dart run flutter_launcher_icons -f tools/icons-android.yaml
       - run: sed -i 's/android:label="[^"]*"/android:label="Muslim-Fit-pro"/' android/app/src/main/AndroidManifest.xml
       - name: Release signing (اختياري)
         if: env.HAS_KS == 'true'
@@ -57,7 +58,10 @@ jobs:
         with: { channel: stable, cache: true }
       - run: flutter create . --platforms=windows --org com.muslimfit
       - run: flutter pub get
-      - run: dart run flutter_launcher_icons
+      - run: rm -f flutter_launcher_icons-*.yaml
+        shell: bash
+      - run: dart run flutter_launcher_icons -f tools/icons-windows.yaml
+        continue-on-error: true
       - run: sed -i 's/L"muslim_fit_pro"/L"Muslim-Fit-pro"/' windows/runner/main.cpp
         shell: bash
       - run: flutter build windows --release $env:DEFINES
