@@ -19,7 +19,8 @@ class Rig {
   final Pose a, b; // البداية والنهاية (ذهابًا وإيابًا)
   final bool dumbbell;
   final double? handAbs; // زاوية اليد المطلقة (وإلا تتبع الساعد)
-  const Rig(this.a, this.b, {this.dumbbell = false, this.handAbs});
+  final bool seat; // ارسم مقعدًا تحت الحوض
+  const Rig(this.a, this.b, {this.dumbbell = false, this.handAbs, this.seat = false});
 }
 
 // عدّل الزوايا هنا لضبط أي تمرين بدقة.
@@ -30,6 +31,20 @@ const rigs = <String, Rig>{
   'dbpress': Rig(Pose(-90, -90, 90, -90, 90, 90, 0), Pose(-90, -90, -90, -90, 90, 90, 0), dumbbell: true),
   'situp': Rig(Pose(180, 180, 0, 0, -55, 75, 0), Pose(310, 310, 0, 0, -55, 75, 0)),
   'glute': Rig(Pose(180, 180, 0, 0, -55, 75, 0), Pose(160, 160, 0, 0, -20, 49, 0)),
+  'plank': Rig(Pose(-11, -11, 90, 0, 169, 169, 65), Pose(-13, -13, 90, 0, 167, 167, 65), handAbs: 0),
+  'mountain': Rig(Pose(-32, -32, 90, 90, 148, 148, 65), Pose(-32, -32, 90, 90, 50, 140, 20), handAbs: 0),
+  'dbgoblet': Rig(Pose(-90, -90, 90, -45, 90, 90, 0), Pose(-72, -72, 90, -45, 10, 100, 0), dumbbell: true),
+  'dbrdl': Rig(Pose(-90, -90, 90, 90, 90, 90, 0), Pose(-25, -25, 90, 90, 80, 95, 0), dumbbell: true),
+  'deadlift': Rig(Pose(-90, -90, 90, 90, 90, 90, 0), Pose(-25, -25, 90, 90, 80, 95, 0), dumbbell: true),
+  'dbrow': Rig(Pose(-25, -25, 90, 100, 80, 95, 0), Pose(-25, -25, 160, 100, 80, 95, 0), dumbbell: true),
+  'calf': Rig(Pose(-90, -90, 90, 90, 90, 90, 0), Pose(-90, -90, 90, 90, 90, 90, 40)),
+  'superman': Rig(Pose(0, 0, 0, 0, 180, 180, 180), Pose(-12, -12, -15, -15, 168, 168, 168)),
+  'legcurl': Rig(Pose(0, 0, 0, 0, 180, 180, 180), Pose(0, 0, 0, 0, 180, 250, 250)),
+  'tricep': Rig(Pose(-90, -90, 90, 0, 90, 90, 0), Pose(-90, -90, 90, 90, 90, 90, 0)),
+  'dbtriext': Rig(Pose(-90, -90, -90, 135, 90, 90, 0), Pose(-90, -90, -90, -90, 90, 90, 0), dumbbell: true),
+  'latpull': Rig(Pose(-90, -90, -90, -90, 0, 90, 0), Pose(-90, -90, 100, -80, 0, 90, 0), seat: true),
+  'seatedrow': Rig(Pose(-90, -90, 0, 0, 0, 90, 0), Pose(-100, -100, 120, -5, 0, 90, 0), seat: true),
+  'shoulderpress': Rig(Pose(-90, -90, 90, -90, 0, 90, 0), Pose(-90, -90, -90, -90, 0, 90, 0), seat: true),
 };
 
 class Sprites {
@@ -145,6 +160,7 @@ class _P extends CustomPainter {
     cv.scale(k);
     cv.translate(-g.ankle.dx, -g.ground);
     cv.drawLine(Offset(g.ankle.dx + u.left, g.ground), Offset(g.ankle.dx + u.right, g.ground), Paint()..color = Colors.grey.withValues(alpha: .5)..strokeWidth = 2);
+    if (r.seat) cv.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: const Offset(-4, 20), width: 60, height: 10), const Radius.circular(4)), Paint()..color = const Color(0xFF546E7A));
     final paint = Paint()..filterQuality = FilterQuality.high..isAntiAlias = true;
     for (final (name, pos, theta) in g.parts) {
       final p = partMeta[name]!;

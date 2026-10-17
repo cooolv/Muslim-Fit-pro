@@ -5,22 +5,21 @@ import 'package:flutter/material.dart';
 import 'data.dart';
 import 'extras.dart';
 import 'rig.dart';
+import 'splash.dart';
+import 'about.dart';
+import 'player.dart';
 
 // المفاتيح تُمرَّر وقت البناء (--dart-define) من GitHub Secrets، ولا تُكتب في الكود.
-const _opts = FirebaseOptions(
+const fbOptions = FirebaseOptions(
   apiKey: String.fromEnvironment('FB_API_KEY'),
   appId: String.fromEnvironment('FB_APP_ID'),
   messagingSenderId: String.fromEnvironment('FB_SENDER_ID'),
   projectId: String.fromEnvironment('FB_PROJECT_ID'),
 );
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: _opts);
-  if (FirebaseAuth.instance.currentUser == null) {
-    await FirebaseAuth.instance.signInAnonymously();
-  }
-  runApp(const FitPro());
+  runApp(const FitPro()); // تهيئة Firebase تتم خلف شاشة البداية (Boot)
 }
 
 final themeMode = ValueNotifier<ThemeMode>(ThemeMode.dark);
@@ -37,7 +36,7 @@ class FitPro extends StatelessWidget {
         theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF0B6B4D)),
         darkTheme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF0B6B4D), brightness: Brightness.dark),
         themeMode: m,
-        home: const Home(),
+        home: const Boot(),
       ));
 }
 
@@ -52,6 +51,7 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext c) => Scaffold(
         appBar: AppBar(title: const Text('Muslim-Fit-pro'), actions: [
+          IconButton(tooltip: 'عن التطبيق', icon: const Icon(Icons.info_outline), onPressed: () => Navigator.push(c, MaterialPageRoute(builder: (_) => const AboutPage()))),
           IconButton(
             tooltip: 'الوضع الفاتح/الداكن',
             icon: Icon(Theme.of(c).brightness == Brightness.dark ? Icons.light_mode : Icons.dark_mode),
@@ -67,7 +67,7 @@ class _HomeState extends State<Home> {
           onDestinationSelected: (v) => setState(() => i = v),
           destinations: const [
             NavigationDestination(icon: Icon(Icons.fitness_center), label: 'التمارين'),
-            NavigationDestination(icon: Icon(Icons.event_note), label: 'الخطط'),
+            NavigationDestination(icon: Icon(Icons.play_circle), label: 'الروتين'),
             NavigationDestination(icon: Icon(Icons.collections_bookmark), label: 'مجموعاتي'),
             NavigationDestination(icon: Icon(Icons.show_chart), label: 'تقدّمي'),
           ],
@@ -187,9 +187,14 @@ class SetsPage extends StatelessWidget {
                   leading: Icon(d['public'] == true ? Icons.public : Icons.lock),
                   title: Text(d['name']),
                   subtitle: Text(d['public'] == true ? 'عامة' : 'خاصة'),
-                  trailing: d['owner'] == uid
-                      ? IconButton(icon: const Icon(Icons.delete), onPressed: () => d.reference.delete())
-                      : null,
+                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                    IconButton(
+                      tooltip: 'ابدأ',
+                      icon: const Icon(Icons.play_circle_fill),
+                      onPressed: () => Navigator.push(c, MaterialPageRoute(builder: (_) => Player(title: d['name'], steps: stepsOf(d.data() as Map<String, dynamic>)))),
+                    ),
+                    if (d['owner'] == uid) IconButton(icon: const Icon(Icons.delete), onPressed: () => d.reference.delete()),
+                  ]),
                   children: [
                     for (final id in List<String>.from(d['ids']))
                       if (exercises.any((e) => e.id == id))
@@ -211,7 +216,7 @@ class NewSet extends StatefulWidget {
 }
 
 class _NewSetState extends State<NewSet> {
-  final name = TextEditingController();
+  final name = TextEditingController(), reps = TextEditingController(text: '12'), secs = TextEditingController(text: '40');
   final sel = <String>{};
   bool pub = false;
   @override
@@ -221,6 +226,11 @@ class _NewSetState extends State<NewSet> {
           width: 400,
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             TextField(controller: name, decoration: const InputDecoration(labelText: 'الاسم')),
+            Row(children: [
+              Expanded(child: TextField(controller: reps, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'عدّات لكل تمرين'))),
+              const SizedBox(width: 8),
+              Expanded(child: TextField(controller: secs, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'ثواني لكل تمرين'))),
+            ]),
             SwitchListTile(title: const Text('عامة للجميع'), value: pub, onChanged: (v) => setState(() => pub = v)),
             Flexible(
               child: ListView(shrinkWrap: true, children: [
@@ -235,16 +245,20 @@ class _NewSetState extends State<NewSet> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(c), child: const Text('إلغاء')),
           FilledButton(
-            onPressed: () async {
+            onPressed: () {
               if (name.text.trim().isEmpty || sel.isEmpty) return;
-              await FirebaseFirestore.instance.collection('sets').add({
+              final r = (int.tryParse(reps.text) ?? 12).clamp(0, 100), t = (int.tryParse(secs.text) ?? 40).clamp(10, 600);
+              final nav = Navigator.of(c), msg = ScaffoldMessenger.of(c);
+              // لا ننتظر ردّ الخادم: الكتابة تُحفظ محليًا فورًا ثم تُزامَن، فيُغلق الديالوج مباشرة
+              FirebaseFirestore.instance.collection('sets').add({
                 'name': name.text.trim(),
                 'ids': sel.toList(),
+                'steps': [for (final id in sel) {'id': id, 'reps': r, 'secs': t}],
                 'public': pub,
                 'owner': FirebaseAuth.instance.currentUser!.uid,
                 'at': FieldValue.serverTimestamp(),
-              });
-              if (c.mounted) Navigator.pop(c);
+              }).then((_) {}, onError: (e) => msg.showSnackBar(SnackBar(content: Text('تعذر الحفظ: $e'))));
+              nav.pop();
             },
             child: const Text('حفظ'),
           ),

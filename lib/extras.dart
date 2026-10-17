@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'data.dart';
 import 'main.dart';
+import 'player.dart';
 
 String get _uid => FirebaseAuth.instance.currentUser!.uid;
 
@@ -166,6 +167,18 @@ class PlansPage extends StatelessWidget {
   const PlansPage({super.key});
   @override
   Widget build(BuildContext c) => ListView(padding: const EdgeInsets.all(12), children: [
+        Padding(padding: const EdgeInsets.fromLTRB(8, 4, 8, 8), child: Text('ابدأ الآن', style: Theme.of(c).textTheme.titleLarge)),
+        for (final r in routines)
+          Card(
+            child: ListTile(
+              leading: Text(r.emoji, style: const TextStyle(fontSize: 28)),
+              title: Text(r.name),
+              subtitle: Text('${r.steps.length} تمارين • ${r.minutes} دقيقة'),
+              trailing: FilledButton.icon(icon: const Icon(Icons.play_arrow), label: const Text('ابدأ'), onPressed: () => Navigator.push(c, MaterialPageRoute(builder: (_) => Player(title: r.name, steps: r.steps)))),
+              onTap: () => Navigator.push(c, MaterialPageRoute(builder: (_) => Player(title: r.name, steps: r.steps))),
+            ),
+          ),
+        Padding(padding: const EdgeInsets.fromLTRB(8, 16, 8, 8), child: Text('خطط أسبوعية', style: Theme.of(c).textTheme.titleLarge)),
         for (final p in plans)
           Card(
             child: ExpansionTile(

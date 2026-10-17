@@ -13,6 +13,12 @@
 ## 📥 التحميل
 من صفحة **Releases**: `Muslim-Fit-pro-Android.apk` و`Muslim-Fit-pro-Windows.zip`.
 
+## ▶️ الروتين التلقائي
+من تبويب «الروتين»: اختر (تمارين الصباح/المساء/البطن/الذراع/الأرجل/الظهر) وضع الهاتف أمامك؛ كل تمرين له عدّات ووقت، وينتقل تلقائيًا للتالي مع زر تخطّي/السابق/إيقاف مؤقت، والشاشة تبقى مضاءة. تقدر تنشئ روتينك الخاص من «مجموعاتي».
+
+## 🏷️ قبل النشر
+عدّل `lib/app_info.dart` (حساب GitHub، البريد، رابط المتجر والشبكة) لتظهر الروابط في شاشة «عن التطبيق».
+
 ## ⚙️ الإعداد
 1. Firebase: فعّل **Firestore** و**Authentication ← Anonymous**، والصق `firestore.rules` في Rules.
 2. GitHub ← *Settings → Secrets → Actions*: `FB_API_KEY`, `FB_APP_ID`, `FB_SENDER_ID`, `FB_PROJECT_ID`.
