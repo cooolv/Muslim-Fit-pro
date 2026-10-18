@@ -64,7 +64,7 @@ jobs:
         continue-on-error: true
       - run: sed -i 's/L"muslim_fit_pro"/L"Muslim-Fit-pro"/' windows/runner/main.cpp
         shell: bash
-      - run: flutter build windows --release $env:DEFINES
+      - run: flutter build windows --release $DEFINES         shell: bash
       - run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath Muslim-Fit-pro-Windows.zip
       - uses: actions/upload-artifact@v4
         with: { name: windows, path: Muslim-Fit-pro-Windows.zip }
