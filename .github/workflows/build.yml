@@ -24,6 +24,9 @@ jobs:
         with: { channel: stable, cache: true }
       - run: flutter create . --platforms=android --org com.muslimfit
       - run: flutter pub get
+      - run: |
+          sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 36/' android/app/build.gradle.kts
+          grep -n "targetSdk\|compileSdk\|minSdk" android/app/build.gradle.kts
       - run: rm -f flutter_launcher_icons-*.yaml
       - run: dart run flutter_launcher_icons -f tools/icons-android.yaml
       - run: sed -i 's/android:label="[^"]*"/android:label="Muslim-Fit-pro"/' android/app/src/main/AndroidManifest.xml
