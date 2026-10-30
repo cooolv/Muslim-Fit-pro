@@ -218,7 +218,6 @@ class NewSet extends StatefulWidget {
 class _NewSetState extends State<NewSet> {
   final name = TextEditingController(), reps = TextEditingController(text: '12'), secs = TextEditingController(text: '40');
   final sel = <String>{};
-  bool pub = false;
   @override
   Widget build(BuildContext c) => AlertDialog(
         title: const Text('مجموعة جديدة'),
@@ -231,7 +230,6 @@ class _NewSetState extends State<NewSet> {
               const SizedBox(width: 8),
               Expanded(child: TextField(controller: secs, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'ثواني لكل تمرين'))),
             ]),
-            SwitchListTile(title: const Text('عامة للجميع'), value: pub, onChanged: (v) => setState(() => pub = v)),
             Flexible(
               child: ListView(shrinkWrap: true, children: [
                 for (final e in exercises)
@@ -254,7 +252,7 @@ class _NewSetState extends State<NewSet> {
                 'name': name.text.trim(),
                 'ids': sel.toList(),
                 'steps': [for (final id in sel) {'id': id, 'reps': r, 'secs': t}],
-                'public': pub,
+                'public': false, // المشاركة العامة معطّلة في الإصدار الأول (سياسة المحتوى الذي ينشئه المستخدمون)
                 'owner': FirebaseAuth.instance.currentUser!.uid,
                 'at': FieldValue.serverTimestamp(),
               }).then((_) {}, onError: (e) => msg.showSnackBar(SnackBar(content: Text('تعذر الحفظ: $e'))));
