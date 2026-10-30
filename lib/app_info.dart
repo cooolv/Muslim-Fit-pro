@@ -7,7 +7,8 @@ const kRepo = 'Muslim-Fit-pro';
 const kContactEmail = 'aemworkacc@gmail.com'; // بريد التواصل (مطلوب في Google Play)
 const kStoreUrl = 'https://cooolv.github.io/Muslim-Apps-Store'; // رابط «متجر تطبيقات المسلم»
 const kNetworkUrl = 'https://alalm.web.app'; // رابط «شبكة العلم نور الناس»
+const kPrivacyUrl = 'https://cooolv.github.io/Muslim-Fit-pro/PRIVACY.html';
 
 String get kRepoUrl => kGithubUser.isEmpty ? '' : 'https://github.com/$kGithubUser/$kRepo';
 String get kReleasesUrl => kRepoUrl.isEmpty ? '' : '$kRepoUrl/releases';
-String get kPrivacyUrl => kRepoUrl.isEmpty ? '' : '$kRepoUrl/blob/main/PRIVACY.md';
+
