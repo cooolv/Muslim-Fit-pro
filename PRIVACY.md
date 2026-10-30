@@ -10,3 +10,5 @@
 **الأطفال:** التطبيق غير موجّه لمن هم دون 13 عامًا.
 
 We collect only an anonymous ID, your created sets and workout logs, stored in Google Firebase. No ads, no data sales, no personal info. Public sets are visible to everyone.
+**التواصل وحذف البيانات:** لأي استفسار أو لطلب حذف بياناتك راسلنا على: aemworkacc@gmail.com
+Contact / data deletion requests: aemworkacc@gmail.com
