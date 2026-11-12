@@ -1,49 +1,135 @@
-# 🕌💪 Muslim-Fit-pro
+<div dir="rtl" align="right">
 
-تطبيق تمارين مجاني بالكامل، واجهة عربية، يعمل على **أندرويد** و**ويندوز** من كود واحد (Flutter).
-شخصيات التمارين مرسومة بوجه مطموس وتتحرك برمجيًا بالزوايا (Rigging) — لا حاجة لملفات GIF.
+# Muslim-Fit-pro
 
-## المميزات
-- 31 تمرينًا (بدون أدوات / دمبل / جيم) بخطوات الأداء والنصائح، مع بحث وفلترة
-- حركة شخصية سلسة لكل تمرين له Rig (حاليًا 6 تمارين، والباقي قيد الإضافة)
-- 3 خطط جاهزة، مجموعات تمارين خاصة أو عامة، مؤقت راحة
-- تسجيل المجموعات (عدّات/وزن) وصفحة تقدّم لآخر 7 أيام
-- وضع فاتح/داكن • مجاني بلا إعلانات
+**تطبيق لياقة عربي للمنزل والجيم** مبني بـFlutter.
 
-## 📥 التحميل
-من صفحة **Releases**: `Muslim-Fit-pro-Android.apk` و`Muslim-Fit-pro-Windows.zip`.
+للقراءة بالإنجليزية: [README.en.md](./README.en.md).
 
-## ▶️ الروتين التلقائي
-من تبويب «الروتين»: اختر (تمارين الصباح/المساء/البطن/الذراع/الأرجل/الظهر) وضع الهاتف أمامك؛ كل تمرين له عدّات ووقت، وينتقل تلقائيًا للتالي مع زر تخطّي/السابق/إيقاف مؤقت، والشاشة تبقى مضاءة. تقدر تنشئ روتينك الخاص من «مجموعاتي».
+## نظرة سريعة
 
-## 🏷️ قبل النشر
-عدّل `lib/app_info.dart` (حساب GitHub، البريد، رابط المتجر والشبكة) لتظهر الروابط في شاشة «عن التطبيق».
+- **100 تمرين** بوزن الجسم والدمبل وأجهزة الجيم، مع العضلات المستهدفة ومستوى الصعوبة وخطوات الأداء.
+- رسوم حركة توضيحية مبنية بنظام Rig ثنائي الأبعاد؛ قد تستخدم التمارين المتقاربة حركة توضيحية مشتركة.
+- ستة روتينات جاهزة ومشغّل بفترة استعداد ومؤقت وانتقال تلقائي، إضافة إلى ثلاث خطط تدريب.
+- إنشاء مجموعات شخصية من التمارين، ومؤقت راحة، وتسجيل المجموعات وعرض التقدم.
+- قسم تغذية تفاعلي بخطط مرنة لأهداف متعددة، بما فيها الرياضة والصيام؛ مع مصادر وتنبيهات صحية.
+- واجهة عربية من اليمين إلى اليسار، ووضع فاتح/داكن.
 
-## ⚙️ الإعداد
-1. Firebase: فعّل **Firestore** و**Authentication ← Anonymous**، والصق `firestore.rules` في Rules.
-2. GitHub ← *Settings → Secrets → Actions*: `FB_API_KEY`, `FB_APP_ID`, `FB_SENDER_ID`, `FB_PROJECT_ID`.
-3. إصدار: `git tag v1.0.1 && git push origin v1.0.1` (أو شغّل Workflow يدويًا من Actions).
+## المنصات والتقنيات
 
-> مفاتيح Firebase للعميل ليست أسرارًا مطلقة؛ الحماية الحقيقية هي قواعد Firestore. قيّد الـ API key من Google Cloud Console على تطبيقك.
+| المجال | التقنية |
+| --- | --- |
+| التطبيق | Flutter / Dart |
+| المنصات التي يبنيها الإصدار الحالي | Android وWindows |
+| تسجيل الدخول السحابي | Firebase Anonymous Authentication |
+| البيانات السحابية | Cloud Firestore |
+| الحركة ومنع إطفاء الشاشة | رسوم Rig محلية و`wakelock_plus` |
+| الروابط الخارجية | `url_launcher` |
 
-## 🚀 النشر على Google Play
-1. أنشئ مفتاح التوقيع **مرة واحدة** واحتفظ به في مكان آمن (لا ترفعه للمستودع):
+بيانات التمارين والخطط والتغذية مضمنة محليًا. لا يحتاج تصفحها أو تشغيل الروتينات الجاهزة إلى اتصال بالإنترنت، لكن يحتاج التطبيق إلى إعداد Firebase عند البناء والتهيئة. تسجيل الدخول المجهول والبيانات السحابية يحتاجان اتصالًا عند استخدامهما أول مرة؛ وبعد تسجيل الدخول، يخزن Firestore التغييرات محليًا لمزامنتها عند عودة الاتصال.
+
+## ابدأ محليًا
+
+### المتطلبات
+
+- Flutter على قناة stable وDart المتوافق مع القيد في [`pubspec.yaml`](./pubspec.yaml).
+- Android Studio أو Visual Studio حسب المنصة المستهدفة.
+- مشروع Firebase مع تفعيل **Anonymous Authentication** و**Cloud Firestore** إذا أردت اختبار ميزات السحابة.
+
+### الإعداد والتشغيل
+
+1. استنسخ المستودع ثم ادخل مجلده.
+2. أنشئ ملفات المنصات المحلية؛ فهي غير محفوظة في المستودع:
+
+   ```bash
+   flutter create . --platforms=android,windows --org com.muslimfit
+   flutter pub get
+   ```
+
+3. مرّر إعدادات Firebase إلى Flutter عبر `--dart-define`. عيّن القيم محليًا في متغيرات البيئة قبل تنفيذ الأمر، ولا تضع أسرارًا أو مفاتيح توقيع في Git:
+
+   ```bash
+   flutter run \
+     --dart-define=FB_API_KEY="$FB_API_KEY" \
+     --dart-define=FB_APP_ID="$FB_APP_ID" \
+     --dart-define=FB_SENDER_ID="$FB_SENDER_ID" \
+     --dart-define=FB_PROJECT_ID="$FB_PROJECT_ID"
+   ```
+
+   أسماء القيم مطابقة للثوابت في [`lib/main.dart`](./lib/main.dart). يلزم إعداد Firebase لتهيئة التطبيق حتى عند استخدام ميزاته المحلية دون اتصال.
+
+4. فعّل **Anonymous** و**Firestore** في Firebase Console، ثم انشر قواعد [`firestore.rules`](./firestore.rules). لا تجعل قواعد Firestore مفتوحة للعامة.
+
+### فحوصات وبناء محلي
+
 ```bash
-keytool -genkey -v -keystore upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+flutter analyze
+flutter build apk --release \
+  --dart-define=FB_API_KEY="$FB_API_KEY" \
+  --dart-define=FB_APP_ID="$FB_APP_ID" \
+  --dart-define=FB_SENDER_ID="$FB_SENDER_ID" \
+  --dart-define=FB_PROJECT_ID="$FB_PROJECT_ID"
+flutter build windows --release \
+  --dart-define=FB_API_KEY="$FB_API_KEY" \
+  --dart-define=FB_APP_ID="$FB_APP_ID" \
+  --dart-define=FB_SENDER_ID="$FB_SENDER_ID" \
+  --dart-define=FB_PROJECT_ID="$FB_PROJECT_ID"
 ```
-2. حوّله إلى base64: Linux/Mac `base64 -w0 upload.jks` — PowerShell `[Convert]::ToBase64String([IO.File]::ReadAllBytes("upload.jks"))`
-3. أضف Secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD`, `ANDROID_KEY_ALIAS` (= upload).
-4. ارفع tag جديد → سيظهر `Muslim-Fit-pro-PlayStore.aab` في Releases. ارفعه في Play Console (فعّل Play App Signing).
-5. المطلوب في المتجر: سياسة الخصوصية (`PRIVACY.md` — انشرها عبر GitHub Pages أو رابط Raw)، نموذج Data safety، تصنيف المحتوى، لقطات شاشة، أيقونة 512، وصورة مميزة 1024×500.
 
-> ⚠️ معرّف التطبيق الحالي `com.muslimfit.muslim_fit_pro` **لا يتغير بعد النشر**. غيّره قبل أول رفع إن أردت (`--org` في `build.yml`).
+لا يحتوي المستودع حاليًا على مجلد اختبارات `test/`. أضف اختبارات مركزة عند إضافة منطق جديد، وشغّل `flutter test` بعد إضافتها.
 
-## 🎬 تحريك الشخصية
-- الأجزاء في `assets/rig/` ومحاورها في `lib/parts_data.dart`.
-- زوايا كل تمرين في `rigs` داخل `lib/rig.dart` (0=يمين، 90=أسفل، -90=أعلى). عدّلها لضبط الحركة.
+## خريطة المشروع
 
-## 🧪 تشغيل محلي
-```bash
-flutter create . --platforms=android,windows --org com.muslimfit
-flutter run --dart-define=FB_API_KEY=... --dart-define=FB_APP_ID=... --dart-define=FB_SENDER_ID=... --dart-define=FB_PROJECT_ID=...
-```
+| المسار | المسؤولية |
+| --- | --- |
+| [`lib/main.dart`](./lib/main.dart) | نقطة الدخول، الثيم والتنقل، قائمة التمارين وتفاصيلها، مجموعات المستخدم، وعرض الحركة |
+| [`lib/data.dart`](./lib/data.dart) | تعريف التمرين `Ex` والـ100 تمرين والروتينات والخطط وخطوات المشغّل |
+| [`lib/player.dart`](./lib/player.dart) | مؤقت التمرين، الاستعداد، الإيقاف والتخطي والانتقال التلقائي |
+| [`lib/extras.dart`](./lib/extras.dart) | مؤقت الراحة، سجل التمارين، صفحة التقدم والخطط |
+| [`lib/nutrition.dart`](./lib/nutrition.dart) | محتوى التغذية المحلي التفاعلي ومصادره |
+| [`lib/rig.dart`](./lib/rig.dart) و[`lib/parts_data.dart`](./lib/parts_data.dart) | رسوم الشخصيات، إطارات الحركة ومحاور الأجزاء |
+| [`lib/splash.dart`](./lib/splash.dart) | شاشة البداية وتهيئة Firebase وتفعيل التخزين المحلي لـFirestore |
+| [`lib/cloud_access.dart`](./lib/cloud_access.dart) | بوابة تسجيل الدخول عند فتح ميزات السحابة |
+| [`firestore.rules`](./firestore.rules) | صلاحيات القراءة والكتابة لمجموعات Firestore |
+| [`.github/workflows/build.yml`](./.github/workflows/build.yml) | بناء Android وWindows وإرفاق المخرجات بالإصدار |
+| [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | تدفق التطبيق ونموذج البيانات |
+
+لشرح ملفات الرسم ومواصفات الأجزاء، راجع [`docs/AI_CHARACTER_PROMPT.md`](./docs/AI_CHARACTER_PROMPT.md). لمعايير المساهمة راجع [`CONTRIBUTING.md`](./CONTRIBUTING.md).
+
+## إضافة تمرين
+
+1. أضف `Ex` جديدًا إلى `exercises` في [`lib/data.dart`](./lib/data.dart)، مع **معرّف فريد ومستقر** واسم عربي وعضلة ومعدة (`none` أو `dumbbell` أو `gym`) ومستوى وخطوات ونصيحة.
+2. أضف Rig خاصًا في [`lib/rig.dart`](./lib/rig.dart)، أو اربط التمرين بحركة توضيحية مناسبة عبر `exerciseRigAliases`. الحركات المشتركة توضيحية وليست بديلًا عن قراءة خطوات الأداء.
+3. استخدم المعرّف نفسه في `RStep` إذا أضفت التمرين إلى روتين جاهز. المجموعات المخصصة تستعرض `exercises` تلقائيًا.
+4. تحقّق من عدم تكرار المعرّف، ومن ظهور التمرين في البحث والتفاصيل والمشغّل.
+
+**لا تغيّر معرّف تمرين منشور دون ترحيل البيانات:** المجموعات والسجلات المخزنة في Firestore تشير إلى `Ex.id`.
+
+## Firebase والبيانات
+
+- `logs`: `owner`, `ex`, `reps`, `kg`, `at`.
+- `sets`: `name`, `ids`, `steps` (اختياري للمجموعات القديمة), `public`, `owner`, `at`.
+- تسجيل الدخول مجهول، ولا يتطلب اسمًا أو بريدًا. يحتفظ Firebase بهوية المستخدم على الجهاز؛ إزالة بيانات التطبيق قد تمنع استعادة هوية مجهولة سابقة.
+- القواعد الحالية تقيد السجلات والمجموعات الخاصة بمالكها، وتسمح بقراءة المجموعة العامة للمستخدم المسجل. راجع القواعد قبل أي تغيير في نموذج المشاركة.
+- مفاتيح Firebase المضمّنة في التطبيق ليست أسرارًا بحد ذاتها؛ الحماية تعتمد على قواعد Firestore وتقييد مفاتيح API. **لا ترفع مطلقًا keystore أو كلمات المرور أو ملفات أسرار Firebase.**
+
+راجع [سياسة الخصوصية](./PRIVACY.md) لمعرفة البيانات والخدمات المستخدمة.
+
+## الإصدارات
+
+سير العمل في [`.github/workflows/build.yml`](./.github/workflows/build.yml) يعمل عند دفع tag يبدأ بـ`v` أو عند تشغيله يدويًا:
+
+1. يجهز ملفات Android وWindows ويستعيد الحزم.
+2. يبني APK وملف Windows ZIP.
+3. يبني Android App Bundle إذا كانت أسرار التوقيع التالية موجودة: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD`, `ANDROID_KEY_ALIAS`.
+4. يرفع المخرجات إلى GitHub Release.
+
+لإنشاء إصدار، حدّث رقم الإصدار في [`pubspec.yaml`](./pubspec.yaml) و[`lib/app_info.dart`](./lib/app_info.dart)، ثم ادفع tag مثل `v1.3.0`. معرّف Android الحالي `com.muslimfit.muslim_fit_pro`؛ لا تغيّره بعد النشر إلى المتجر.
+
+## تنبيهات
+
+- محتوى التمارين والتغذية تثقيفي عام، وليس تشخيصًا أو علاجًا طبيًا. راجع طبيبًا أو اختصاصي تغذية للحالات الصحية والأدوية والحمل والأطفال.
+- المحتوى الغذائي لا يوصي بتغيير علاج السكري أو تناول مكملات الحديد دون مختص.
+- التطبيق مرخص بموجب [MIT](./LICENSE).
+
+</div>

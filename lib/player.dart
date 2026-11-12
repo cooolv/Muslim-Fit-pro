@@ -32,12 +32,16 @@ class _PlayerState extends State<Player> {
   bool paused = false, done = false;
   Timer? t;
 
+  bool get _supportsMobileFeatures =>
+      defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+
   Ex ex(int n) => exercises.firstWhere((e) => e.id == widget.steps[n].id);
 
   @override
   void initState() {
     super.initState();
-    WakelockPlus.enable(); // أبقِ الشاشة مضاءة
+    if (_supportsMobileFeatures) unawaited(WakelockPlus.enable());
     t = Timer.periodic(const Duration(seconds: 1), (_) {
       if (paused || done || !mounted) return;
       setState(() {
@@ -45,8 +49,10 @@ class _PlayerState extends State<Player> {
           left--;
         } else {
           if (i >= 0) _log(widget.steps[i]);
-          HapticFeedback.heavyImpact();
-          SystemSound.play(SystemSoundType.alert);
+          if (_supportsMobileFeatures) {
+            unawaited(HapticFeedback.heavyImpact());
+            unawaited(SystemSound.play(SystemSoundType.alert));
+          }
           _go(i + 1);
         }
       });
@@ -73,7 +79,7 @@ class _PlayerState extends State<Player> {
   @override
   void dispose() {
     t?.cancel();
-    WakelockPlus.disable();
+    if (_supportsMobileFeatures) unawaited(WakelockPlus.disable());
     super.dispose();
   }
 

@@ -1,6 +1,6 @@
 import 'dart:math' as m;
 import 'dart:ui' as ui;
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'app_info.dart';
@@ -21,7 +21,7 @@ class _BootState extends State<Boot> {
 
   Future<void> _fb() async {
     await Firebase.initializeApp(options: fbOptions);
-    if (FirebaseAuth.instance.currentUser == null) await FirebaseAuth.instance.signInAnonymously();
+    FirebaseFirestore.instance.settings = const Settings(persistenceEnabled: true);
   }
 
   @override

@@ -2,11 +2,10 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'cloud_access.dart';
 import 'data.dart';
 import 'main.dart';
 import 'player.dart';
-
-String get _uid => FirebaseAuth.instance.currentUser!.uid;
 
 /// مؤقت راحة بين المجموعات
 class RestTimer extends StatefulWidget {
@@ -34,7 +33,8 @@ class _RestTimerState extends State<RestTimer> {
   }
 
   @override
-  Widget build(BuildContext c) => Card(
+  Widget build(BuildContext c) => CloudAccessGate(
+      builder: (user) => Card(
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(children: [
@@ -80,28 +80,33 @@ class _LogSetState extends State<LogSet> {
             Expanded(child: TextField(controller: kg, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'وزن كجم'))),
             const SizedBox(width: 8),
             FilledButton(
-              onPressed: () async {
+              onPressed: () {
                 final r = int.tryParse(reps.text), w = double.tryParse(kg.text) ?? 0;
                 if (r == null || r <= 0 || r > 1000 || w < 0 || w > 1000) return;
-                await FirebaseFirestore.instance.collection('logs').add({
-                  'owner': _uid, 'ex': widget.e.id, 'reps': r, 'kg': w, 'at': FieldValue.serverTimestamp(),
+                final msg = ScaffoldMessenger.of(c);
+                FirebaseFirestore.instance.collection('logs').add({
+                  'owner': user.uid, 'ex': widget.e.id, 'reps': r, 'kg': w, 'at': FieldValue.serverTimestamp(),
+                }).then((_) {}, onError: (e) {
+                  if (c.mounted) msg.showSnackBar(SnackBar(content: Text('تعذر حفظ السجل: $e')));
                 });
                 reps.clear();
-                if (c.mounted) ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content: Text('تم التسجيل ✅')));
+                kg.clear();
+                msg.showSnackBar(const SnackBar(content: Text('حُفظ السجل محليًا وستتم مزامنته عند توفر الإنترنت')));
               },
               child: const Text('سجّل'),
             ),
           ]),
         ),
-      );
+      ));
 }
 
 /// صفحة التقدم
 class ProgressPage extends StatelessWidget {
   const ProgressPage({super.key});
   @override
-  Widget build(BuildContext c) => StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('logs').where('owner', isEqualTo: _uid).snapshots(),
+  Widget build(BuildContext c) => CloudAccessGate(
+      builder: (user) => StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('logs').where('owner', isEqualTo: user.uid).snapshots(),
         builder: (_, s) {
           if (s.hasError) return Center(child: Text('تعذر التحميل: ${s.error}'));
           if (!s.hasData) return const Center(child: CircularProgressIndicator());
@@ -152,7 +157,7 @@ class ProgressPage extends StatelessWidget {
               ),
           ]);
         },
-      );
+      ));
 }
 
 class _Stat extends StatelessWidget {
@@ -192,12 +197,22 @@ class PlansPage extends StatelessWidget {
                     trailing: TextButton.icon(
                       icon: const Icon(Icons.bookmark_add, size: 18),
                       label: const Text('احفظ'),
-                      onPressed: () async {
-                        await FirebaseFirestore.instance.collection('sets').add({
-                          'name': '${p.name} • ${d.key}', 'ids': d.value, 'public': false, 'owner': _uid,
+                      onPressed: () {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user == null) {
+                          ScaffoldMessenger.of(c).showSnackBar(
+                            const SnackBar(content: Text('اتصل بالخدمات السحابية من تبويب مجموعاتي أولًا')),
+                          );
+                          return;
+                        }
+                        final msg = ScaffoldMessenger.of(c);
+                        FirebaseFirestore.instance.collection('sets').add({
+                          'name': '${p.name} • ${d.key}', 'ids': d.value, 'public': false, 'owner': user.uid,
                           'at': FieldValue.serverTimestamp(),
+                        }).then((_) {}, onError: (e) {
+                          if (c.mounted) msg.showSnackBar(SnackBar(content: Text('تعذر الحفظ: $e')));
                         });
-                        if (c.mounted) ScaffoldMessenger.of(c).showSnackBar(const SnackBar(content: Text('أُضيفت إلى مجموعاتي ✅')));
+                        msg.showSnackBar(const SnackBar(content: Text('حُفظت محليًا وستتم المزامنة عند توفر الإنترنت')));
                       },
                     ),
                   ),

@@ -2,16 +2,30 @@
 
 # سياسة الخصوصية — Muslim-Fit-pro
 
-**ما نجمعه:** معرّفًا مجهولًا (Firebase Anonymous Auth)، والمجموعات التي تنشئها، وسجلات تمارينك (عدّات/وزن/تاريخ). قد تعالج خدمات Firebase معرّفات تقنية للجهاز لتشغيل الخدمة.
-لا نطلب اسمك أو بريدك أو موقعك، ولا نعرض إعلانات، ولا نبيع بياناتك ولا نشاركها مع أطراف ثالثة.
+**آخر تحديث: 12 نوفمبر 2026**
 
-**أين تُخزَّن:** على Google Firebase (Firestore) مع تشفير أثناء النقل. سجلاتك ومجموعاتك مرئية لك وحدك.
+## البيانات والخدمات
 
-**الحذف:** لطلب حذف بياناتك راسلنا على: aemworkacc@gmail.com مع ذكر طلبك، ونحذفها خلال مدة معقولة.
+- لا يطلب التطبيق اسمًا أو بريدًا إلكترونيًا أو موقعًا جغرافيًا. تسجيل الدخول السحابي اختياري ومجهول عبر Firebase Authentication، وينشئ معرّف مستخدم Firebase.
+- عند استخدام الميزات السحابية، تُحفظ سجلات التمارين (معرّف التمرين، العدّات، الوزن، والتاريخ) والمجموعات التي تنشئها في Cloud Firestore، مرتبطة بمعرّف المستخدم.
+- يستخدم التطبيق Firebase لتشغيل تسجيل الدخول وقاعدة البيانات. قد تعالج Google/Firebase بيانات تقنية لازمة لتقديم هذه الخدمات. لا يتضمن المشروع تكاملًا متعمدًا للإعلانات أو التحليلات.
+- تبقى التمارين والروتينات وخطط التغذية المضمّنة على الجهاز. اختيارات قسم التغذية وعلامات الإنجاز وعدّاد الماء حالة مؤقتة داخل واجهة التطبيق، ولا تُرسل أو تُحفظ في قاعدة البيانات.
 
-**تنبيه صحي:** التمارين للتوعية واللياقة العامة وليست بديلًا عن استشارة الطبيب. استشر طبيبك قبل البدء، وتوقف عند الشعور بألم أو دوخة.
+## التخزين والمشاركة
 
-**الأطفال:** التطبيق غير موجّه لمن هم دون 13 عامًا.
+- يتصل التطبيق بخدمات Firebase عند استخدامها، ويُفعّل التخزين المحلي لـFirestore لدعم القراءة من البيانات المخزنة مؤقتًا ومزامنة الكتابات المعلّقة عند عودة الاتصال. قد يؤدي حذف بيانات التطبيق أو إزالته إلى فقدان البيانات المحلية أو تعذّر استعادة هوية مجهولة سابقة.
+- السجلات والمجموعات الخاصة متاحة لمالكها وفق قواعد Firestore. تسمح القواعد بقراءة المجموعات التي تحمل `public: true` للمستخدمين المسجلين؛ الواجهة الحالية تنشئ مجموعات خاصة.
+- تُحمى حركة البيانات إلى Firebase أثناء النقل. تعتمد حماية البيانات وصلاحياتها على إعدادات Firebase وقواعد [`firestore.rules`](./firestore.rules).
+- لا يبيع التطبيق بياناتك. تستخدم Google/Firebase بوصفها مزوّدًا للخدمات اللازمة لتشغيل الميزات السحابية.
+
+## الروابط الخارجية وحذف البيانات
+
+- روابط مراجع التغذية اختيارية وتُفتح في المتصفح الخارجي. عند فتحها، تسري سياسة الخصوصية الخاصة بالموقع الذي تزوره.
+- لطلب حذف البيانات السحابية، راسلنا على **aemworkacc@gmail.com**. اذكر أن الطلب يخص Muslim-Fit-pro وأي تفاصيل تساعد على تحديد البيانات المراد حذفها.
+
+## تنبيه صحي والأطفال
+
+محتوى التمارين والتغذية للتثقيف العام وليس تشخيصًا أو علاجًا طبيًا. استشر مختصًا بشأن الأمراض والأدوية والصيام والحمل والأطفال، ولا تغيّر علاجًا أو تبدأ مكملًا بناءً على محتوى التطبيق وحده. التطبيق غير موجّه للأطفال دون 13 عامًا.
 
 **التواصل:** aemworkacc@gmail.com
 
@@ -23,16 +37,30 @@
 
 # Privacy Policy — Muslim-Fit-pro
 
-**What we collect:** an anonymous ID (Firebase Anonymous Auth), the workout sets you create, and your workout logs (reps, weight, date). Firebase services may process technical device identifiers to run the service.
-We do not ask for your name, email, or location. No ads, and we do not sell or share your data with third parties.
+**Last updated: November 12, 2026**
 
-**Where it is stored:** Google Firebase (Firestore), encrypted in transit. Your logs and sets are visible only to you.
+## Data and services
 
-**Deletion:** to request deletion of your data, email: aemworkacc@gmail.com
+- The app does not ask for your name, email address, or location. Optional cloud sign-in is anonymous through Firebase Authentication and creates a Firebase user ID.
+- When you use cloud features, workout logs (exercise ID, repetitions, weight, and date) and sets you create are stored in Cloud Firestore and associated with that user ID.
+- The app uses Firebase for authentication and database services. Google/Firebase may process technical data needed to provide these services. The project does not intentionally integrate advertising or analytics.
+- Bundled exercises, routines, and nutrition plans remain on the device. Nutrition selections, completion checkboxes, and the water counter are temporary app UI state; they are not sent to or stored in the database.
 
-**Health notice:** workouts are for general fitness and are not a substitute for medical advice. Consult your doctor before starting, and stop if you feel pain or dizziness.
+## Storage and sharing
 
-**Children:** the app is not directed to children under 13.
+- The app connects to Firebase when cloud features are used and enables Firestore local persistence to support cached reads and synchronization of pending writes when connectivity returns. Clearing app data or uninstalling may remove local data or make a previous anonymous identity unrecoverable.
+- Workout logs and private sets are available to their owner under the Firestore rules. The rules allow signed-in users to read sets with `public: true`; the current UI creates private sets.
+- Data sent to Firebase is protected in transit. Data access is governed by Firebase configuration and [`firestore.rules`](./firestore.rules).
+- The app does not sell your data. Google/Firebase is used as the service provider needed to operate cloud features.
+
+## External links and data deletion
+
+- Nutrition reference links are optional and open in your external browser. The destination website's privacy policy applies when you visit it.
+- To request deletion of cloud data, email **aemworkacc@gmail.com**. Mention Muslim-Fit-pro and include any details that can help identify the data to be deleted.
+
+## Health notice and children
+
+Exercise and nutrition content is general education, not diagnosis or treatment. Consult a qualified professional about medical conditions, medication, fasting, pregnancy, and children. Do not change treatment or start supplements based only on app content. The app is not directed to children under 13.
 
 **Contact:** aemworkacc@gmail.com
 

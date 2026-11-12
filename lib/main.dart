@@ -2,12 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'cloud_access.dart';
 import 'data.dart';
 import 'extras.dart';
 import 'rig.dart';
 import 'splash.dart';
 import 'about.dart';
 import 'player.dart';
+import 'nutrition.dart';
 
 // المفاتيح تُمرَّر وقت البناء (--dart-define) من GitHub Secrets، ولا تُكتب في الكود.
 const fbOptions = FirebaseOptions(
@@ -60,7 +62,13 @@ class _HomeState extends State<Home> {
         ]),
         body: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
-          child: [const ExList(key: ValueKey(0)), const PlansPage(key: ValueKey(1)), const SetsPage(key: ValueKey(2)), const ProgressPage(key: ValueKey(3))][i],
+          child: [
+            const ExList(key: ValueKey(0)),
+            const PlansPage(key: ValueKey(1)),
+            const SetsPage(key: ValueKey(2)),
+            const ProgressPage(key: ValueKey(3)),
+            const NutritionPage(key: ValueKey(4)),
+          ][i],
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: i,
@@ -70,20 +78,24 @@ class _HomeState extends State<Home> {
             NavigationDestination(icon: Icon(Icons.play_circle), label: 'الروتين'),
             NavigationDestination(icon: Icon(Icons.collections_bookmark), label: 'مجموعاتي'),
             NavigationDestination(icon: Icon(Icons.show_chart), label: 'تقدّمي'),
+            NavigationDestination(icon: Icon(Icons.restaurant_menu), label: 'التغذية'),
           ],
         ),
       );
 }
 
-Widget gifOf(Ex e, {double size = 64}) => rigs.containsKey(e.id)
-    ? RigView(rigs[e.id]!, size: size)
-    : ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: Image.asset(e.gif, width: size, height: size, fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
-              width: size, height: size, color: Colors.white10,
-              child: Icon(Icons.accessibility_new, size: size * .6))),
-    );
+Widget gifOf(Ex e, {double size = 64}) {
+  final rig = rigs[e.id] ?? rigs[exerciseRigAliases[e.id]];
+  return rig != null
+      ? RigView(rig, size: size)
+      : ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.asset(e.gif, width: size, height: size, fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                  width: size, height: size, color: Colors.white10,
+                  child: Icon(Icons.accessibility_new, size: size * .6))),
+        );
+}
 
 class ExList extends StatefulWidget {
   const ExList({super.key});
@@ -149,6 +161,8 @@ class Detail extends StatelessWidget {
         body: ListView(padding: const EdgeInsets.all(16), children: [
           Center(child: Hero(tag: e.id, child: gifOf(e, size: 240))),
           const SizedBox(height: 16),
+          const Text('الحركة المعروضة توضيحية؛ اقرأ خطوات الأداء واختر مدى مريحًا لك.', textAlign: TextAlign.center),
+          const SizedBox(height: 12),
           Text('العضلة: ${e.muscle} • المستوى: ${e.level}'),
           const SizedBox(height: 12),
           Text('طريقة الأداء', style: Theme.of(c).textTheme.titleMedium),
@@ -165,44 +179,54 @@ class SetsPage extends StatelessWidget {
   const SetsPage({super.key});
   @override
   Widget build(BuildContext c) {
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    final q = FirebaseFirestore.instance.collection('sets').where(Filter.or(
-        Filter('public', isEqualTo: true), Filter('owner', isEqualTo: uid)));
     return Scaffold(
-      floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => showDialog(context: c, builder: (_) => const NewSet()),
-          icon: const Icon(Icons.add), label: const Text('مجموعة جديدة')),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: q.snapshots(),
-        builder: (_, s) {
-          if (s.hasError) return Center(child: Text('تعذر التحميل: ${s.error}'));
-          if (!s.hasData) return const Center(child: CircularProgressIndicator());
-          final docs = s.data!.docs;
-          if (docs.isEmpty) return const Center(child: Text('لا توجد مجموعات بعد'));
-          return ListView(children: [
-            for (final d in docs)
-              Card(
-                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                child: ExpansionTile(
-                  leading: Icon(d['public'] == true ? Icons.public : Icons.lock),
-                  title: Text(d['name']),
-                  subtitle: Text(d['public'] == true ? 'عامة' : 'خاصة'),
-                  trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                    IconButton(
-                      tooltip: 'ابدأ',
-                      icon: const Icon(Icons.play_circle_fill),
-                      onPressed: () => Navigator.push(c, MaterialPageRoute(builder: (_) => Player(title: d['name'], steps: stepsOf(d.data() as Map<String, dynamic>)))),
-                    ),
-                    if (d['owner'] == uid) IconButton(icon: const Icon(Icons.delete), onPressed: () => d.reference.delete()),
-                  ]),
-                  children: [
-                    for (final id in List<String>.from(d['ids']))
-                      if (exercises.any((e) => e.id == id))
-                        ListTile(title: Text(exercises.firstWhere((e) => e.id == id).name)),
-                  ],
-                ),
+      floatingActionButton: StreamBuilder<User?>(
+        stream: FirebaseAuth.instance.authStateChanges(),
+        builder: (_, snapshot) => snapshot.data == null
+            ? const SizedBox.shrink()
+            : FloatingActionButton.extended(
+                onPressed: () => showDialog(context: c, builder: (_) => const NewSet()),
+                icon: const Icon(Icons.add),
+                label: const Text('مجموعة جديدة'),
               ),
-          ]);
+      ),
+      body: CloudAccessGate(
+        builder: (user) {
+          final q = FirebaseFirestore.instance.collection('sets').where(Filter.or(
+              Filter('public', isEqualTo: true), Filter('owner', isEqualTo: user.uid)));
+          return StreamBuilder<QuerySnapshot>(
+            stream: q.snapshots(),
+            builder: (_, s) {
+              if (s.hasError) return Center(child: Text('تعذر التحميل: ${s.error}'));
+              if (!s.hasData) return const Center(child: CircularProgressIndicator());
+              final docs = s.data!.docs;
+              if (docs.isEmpty) return const Center(child: Text('لا توجد مجموعات بعد'));
+              return ListView(children: [
+                for (final d in docs)
+                  Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: ExpansionTile(
+                      leading: Icon(d['public'] == true ? Icons.public : Icons.lock),
+                      title: Text(d['name']),
+                      subtitle: Text(d['public'] == true ? 'عامة' : 'خاصة'),
+                      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                        IconButton(
+                          tooltip: 'ابدأ',
+                          icon: const Icon(Icons.play_circle_fill),
+                          onPressed: () => Navigator.push(c, MaterialPageRoute(builder: (_) => Player(title: d['name'], steps: stepsOf(d.data() as Map<String, dynamic>)))),
+                        ),
+                        if (d['owner'] == user.uid) IconButton(icon: const Icon(Icons.delete), onPressed: () => d.reference.delete()),
+                      ]),
+                      children: [
+                        for (final id in List<String>.from(d['ids']))
+                          if (exercises.any((e) => e.id == id))
+                            ListTile(title: Text(exercises.firstWhere((e) => e.id == id).name)),
+                      ],
+                    ),
+                  ),
+              ]);
+            },
+          );
         },
       ),
     );
@@ -247,13 +271,18 @@ class _NewSetState extends State<NewSet> {
               if (name.text.trim().isEmpty || sel.isEmpty) return;
               final r = (int.tryParse(reps.text) ?? 12).clamp(0, 100), t = (int.tryParse(secs.text) ?? 40).clamp(10, 600);
               final nav = Navigator.of(c), msg = ScaffoldMessenger.of(c);
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) {
+                msg.showSnackBar(const SnackBar(content: Text('اتصل بالخدمات السحابية قبل إنشاء مجموعة')));
+                return;
+              }
               // لا ننتظر ردّ الخادم: الكتابة تُحفظ محليًا فورًا ثم تُزامَن، فيُغلق الديالوج مباشرة
               FirebaseFirestore.instance.collection('sets').add({
                 'name': name.text.trim(),
                 'ids': sel.toList(),
                 'steps': [for (final id in sel) {'id': id, 'reps': r, 'secs': t}],
                 'public': false, // المشاركة العامة معطّلة في الإصدار الأول (سياسة المحتوى الذي ينشئه المستخدمون)
-                'owner': FirebaseAuth.instance.currentUser!.uid,
+                'owner': user.uid,
                 'at': FieldValue.serverTimestamp(),
               }).then((_) {}, onError: (e) => msg.showSnackBar(SnackBar(content: Text('تعذر الحفظ: $e'))));
               nav.pop();
