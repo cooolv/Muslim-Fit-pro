@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'error_reporter.dart';
 
 class _MealIdea {
   final String time, name;
@@ -187,9 +189,19 @@ class _NutritionPageState extends State<NutritionPage> {
   }
 
   Future<void> _openSource(String url) async {
-    final opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر فتح المصدر')));
+    try {
+      final opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+      if (!opened && mounted) {
+        reportAppError(StateError('url_launcher returned false for $url'), StackTrace.current, source: 'Opening nutrition reference');
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر فتح المصدر')));
+      }
+    } on PlatformException catch (error) {
+      reportAppError(error, StackTrace.current, source: 'Opening nutrition reference');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر فتح المصدر (${error.code})')),
+        );
+      }
     }
   }
 

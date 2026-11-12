@@ -5,15 +5,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'data.dart';
+import 'error_reporter.dart';
 import 'main.dart' show gifOf;
 
 /// يحوّل وثيقة مجموعة من Firestore إلى خطوات (يدعم المجموعات القديمة التي تحتوي ids فقط)
 List<RStep> stepsOf(Map<String, dynamic> m) {
-  final s = m['steps'];
-  if (s is List && s.isNotEmpty) {
-    return [for (final x in s) RStep(x['id'] as String, (x['reps'] as num).toInt(), (x['secs'] as num).toInt())];
+  final rawSteps = m['steps'];
+  if (rawSteps is List && rawSteps.isNotEmpty) {
+    final parsed = <RStep>[];
+    for (final raw in rawSteps) {
+      if (raw is! Map) continue;
+      final id = raw['id'], reps = raw['reps'], secs = raw['secs'];
+      if (id is! String ||
+          !_exerciseIds.contains(id) ||
+          reps is! num ||
+          secs is! num ||
+          !reps.isFinite ||
+          !secs.isFinite ||
+          reps < 0 ||
+          reps > 1000 ||
+          secs < 1 ||
+          secs > 3600) {
+        continue;
+      }
+      parsed.add(RStep(id, reps.toInt(), secs.toInt()));
+    }
+    if (parsed.isNotEmpty) return parsed;
   }
-  return [for (final id in List<String>.from(m['ids'] ?? [])) RStep(id, 12, 40)];
+  return [for (final id in exerciseIdsOf(m['ids'])) RStep(id, 12, 40)];
+}
+
+final _exerciseIds = exercises.map((e) => e.id).toSet();
+
+List<String> exerciseIdsOf(dynamic value) {
+  if (value is! List) return const [];
+  return value.whereType<String>().where(_exerciseIds.contains).toList();
 }
 
 /// مشغّل التمارين: يعدّ الوقت وينتقل تلقائيًا للتالي، مع تخطي/رجوع/إيقاف مؤقت
@@ -41,6 +67,7 @@ class _PlayerState extends State<Player> {
   @override
   void initState() {
     super.initState();
+    if (widget.steps.isEmpty) return;
     if (_supportsMobileFeatures) unawaited(WakelockPlus.enable());
     t = Timer.periodic(const Duration(seconds: 1), (_) {
       if (paused || done || !mounted) return;
@@ -73,7 +100,14 @@ class _PlayerState extends State<Player> {
     if (u == null) return;
     FirebaseFirestore.instance.collection('logs').add({
       'owner': u.uid, 'ex': s.id, 'reps': s.reps > 0 ? s.reps : 1, 'kg': 0, 'at': FieldValue.serverTimestamp(),
-    }).then((_) {}, onError: (_) {});
+    }).then<void>((_) {}, onError: (Object error, StackTrace stackTrace) {
+      reportAppError(error, stackTrace, source: 'Automatic workout log');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر حفظ سجل التمرين: $error')),
+        );
+      }
+    });
   }
 
   @override
@@ -86,6 +120,12 @@ class _PlayerState extends State<Player> {
   @override
   Widget build(BuildContext c) {
     final cs = Theme.of(c).colorScheme;
+    if (widget.steps.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.title)),
+        body: const Center(child: Text('لا توجد تمارين صالحة في هذه المجموعة')),
+      );
+    }
     if (done) {
       return Scaffold(
         appBar: AppBar(title: Text(widget.title)),
@@ -137,7 +177,7 @@ class _PlayerState extends State<Player> {
             ),
             const SizedBox(height: 8),
             Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-              OutlinedButton(onPressed: () => setState(() => _go(inPrep ? 0 : (i - 1).clamp(0, widget.steps.length - 1))), child: const Text('السابق')),
+              OutlinedButton(onPressed: () => setState(() => _go(inPrep ? 0 : (i - 1).clamp(0, widget.steps.length - 1).toInt())), child: const Text('السابق')),
               const SizedBox(width: 16),
               IconButton.filled(iconSize: 40, onPressed: () => setState(() => paused = !paused), icon: Icon(paused ? Icons.play_arrow : Icons.pause)),
               const SizedBox(width: 16),

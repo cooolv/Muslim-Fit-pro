@@ -17,6 +17,7 @@
 - السجلات والمجموعات الخاصة متاحة لمالكها وفق قواعد Firestore. تسمح القواعد بقراءة المجموعات التي تحمل `public: true` للمستخدمين المسجلين؛ الواجهة الحالية تنشئ مجموعات خاصة.
 - تُحمى حركة البيانات إلى Firebase أثناء النقل. تعتمد حماية البيانات وصلاحياتها على إعدادات Firebase وقواعد [`firestore.rules`](./firestore.rules).
 - لا يبيع التطبيق بياناتك. تستخدم Google/Firebase بوصفها مزوّدًا للخدمات اللازمة لتشغيل الميزات السحابية.
+- تُنشأ تقارير الأخطاء على الجهاز ولا تُرسل تلقائيًا. قد يحتوي التقرير على نص الاستثناء ومسار التتبع ومعلومات تقنية؛ لا يُنسخ أو يُشارك إلا عند اختيارك ذلك من شاشة الخطأ.
 
 ## الروابط الخارجية وحذف البيانات
 
@@ -52,6 +53,7 @@
 - Workout logs and private sets are available to their owner under the Firestore rules. The rules allow signed-in users to read sets with `public: true`; the current UI creates private sets.
 - Data sent to Firebase is protected in transit. Data access is governed by Firebase configuration and [`firestore.rules`](./firestore.rules).
 - The app does not sell your data. Google/Firebase is used as the service provider needed to operate cloud features.
+- Error reports are assembled locally and are not sent automatically. They may contain exception text, stack traces, and technical details; they are copied or shared only when you choose an action on the error screen.
 
 ## External links and data deletion
 

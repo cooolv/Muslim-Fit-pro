@@ -10,6 +10,7 @@
 - Six ready-to-run routines with a preparation countdown, timer, pause, skip, and automatic transitions, plus three training plans.
 - Custom exercise sets, a rest timer, workout logging, and progress history.
 - An interactive nutrition section with flexible goal-based meal ideas, Islamic fasting guidance, safety notes, and references.
+- A global error screen that shows exception details and stack traces, with copy and share actions.
 - Right-to-left Arabic UI and light/dark themes.
 
 ## Platforms and stack
@@ -22,6 +23,7 @@
 | Cloud data | Cloud Firestore |
 | Motion and screen wake lock | Local 2D rigging and `wakelock_plus` |
 | External links | `url_launcher` |
+| Sharing error reports | `share_plus` |
 
 Exercise, routine, plan, and nutrition content is bundled locally. Browsing it and running built-in routines does not require an internet connection. Firebase configuration is still required at build and app initialization. Anonymous sign-in and cloud features need a connection on first use; after sign-in, Firestore caches changes locally and syncs them when connectivity returns.
 
@@ -87,6 +89,7 @@ There is currently no `test/` directory. Add focused tests when introducing new 
 | [`lib/rig.dart`](./lib/rig.dart) and [`lib/parts_data.dart`](./lib/parts_data.dart) | Character rig, motion frames, and body-part pivots |
 | [`lib/splash.dart`](./lib/splash.dart) | Splash screen, Firebase initialization, and Firestore local persistence |
 | [`lib/cloud_access.dart`](./lib/cloud_access.dart) | Sign-in gate for cloud features |
+| [`lib/error_reporter.dart`](./lib/error_reporter.dart) | Flutter/Dart error capture and copyable/shareable reports |
 | [`firestore.rules`](./firestore.rules) | Firestore read/write access rules |
 | [`.github/workflows/build.yml`](./.github/workflows/build.yml) | Android/Windows builds and release artifacts |
 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | App flow and data model |
@@ -114,14 +117,16 @@ See the [Privacy Policy](./PRIVACY.md) for data and service details.
 
 ## Releases
 
-The workflow in [`.github/workflows/build.yml`](./.github/workflows/build.yml) runs when a tag beginning with `v` is pushed or when manually dispatched:
+The workflow in [`.github/workflows/build.yml`](./.github/workflows/build.yml) builds and publishes a GitHub Release for every commit pushed to `main`. It also runs for stable `vX.Y.Z` tags and manual dispatch:
 
-1. Generates Android and Windows platform projects and restores packages.
-2. Builds an APK and a Windows ZIP.
+1. Automatically increments the patch version from the latest stable version tag, falling back to the base version in `pubspec.yaml`.
+2. Generates Android and Windows platform projects, then builds a version-named APK and Windows ZIP. The Android build number is the GitHub Actions run number.
 3. Builds an Android App Bundle when these signing secrets are configured: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD`, and `ANDROID_KEY_ALIAS`.
-4. Uploads the outputs to a GitHub Release.
+4. Creates a new version tag and GitHub Release, such as `v1.2.1`, and uploads the artifacts. Releases are queued to avoid duplicate version numbers when commits arrive close together.
 
-Before a release, update the version in [`pubspec.yaml`](./pubspec.yaml) and [`lib/app_info.dart`](./lib/app_info.dart), then push a tag such as `v1.3.0`. The current Android application ID is `com.muslimfit.muslim_fit_pro`; do not change it after publishing to an app store.
+The four Firebase secrets `FB_API_KEY`, `FB_APP_ID`, `FB_SENDER_ID`, and `FB_PROJECT_ID` must be configured in GitHub Actions; the workflow fails clearly if one is missing. Update the base version in [`pubspec.yaml`](./pubspec.yaml) when starting a new major/minor series; the app's displayed release version is injected automatically during builds.
+
+The current Android application ID is `com.muslimfit.muslim_fit_pro`; do not change it after publishing to an app store.
 
 ## Notices
 

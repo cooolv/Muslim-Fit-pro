@@ -1,6 +1,6 @@
 // ✏️ عدّل هذه القيم قبل النشر. الروابط الفارغة تُخفى تلقائيًا من شاشة «عن التطبيق».
 const kAppName = 'Muslim-Fit-pro';
-const kVersion = '1.2.0';
+const kVersion = String.fromEnvironment('APP_VERSION', defaultValue: '1.2.0');
 const kDeveloper = 'أحمد السيد محمود';
 const kGithubUser = 'cooolv'; // اسم حسابك على GitHub
 const kRepo = 'Muslim-Fit-pro';

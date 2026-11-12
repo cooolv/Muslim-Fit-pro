@@ -6,11 +6,12 @@ This note describes the current implementation. See the [Arabic README](../READM
 
 ## Runtime flow | تدفق التشغيل
 
-1. `main()` creates the Flutter binding and starts `FitPro`.
+1. `main()` creates the Flutter binding, installs Flutter/Dart uncaught-error handlers, and starts `FitPro`.
 2. `Boot` initializes Firebase using compile-time `--dart-define` values and enables Firestore persistence. This initialization is required even for offline use, but it does not sign in at app launch.
 3. `Home` presents five destinations: exercises, routines, custom sets, progress, and nutrition.
 4. Bundled exercise/routine/nutrition content is local. `CloudAccessGate` requests anonymous sign-in only when a cloud-backed view is opened.
 5. After sign-in, Firestore streams and writes use the active anonymous UID. Cached data and pending writes can be synchronized when connectivity returns.
+6. Uncaught framework, platform-dispatcher, and Dart-zone errors, plus selected caught operation failures, are reported through `lib/error_reporter.dart`. The global error screen displays the exception and stack trace and lets the user copy or share the report. Reports are not uploaded automatically. Native process termination and OS force-closes cannot be caught by an in-app Flutter screen.
 
 ## Source map | خريطة الملفات
 
@@ -22,6 +23,7 @@ This note describes the current implementation. See the [Arabic README](../READM
 | `lib/extras.dart` | Rest timer, set logging, progress charts, and training plans |
 | `lib/nutrition.dart` | Local meal-plan ideas, goal selection, session-only checklists, water counter, cautions, and references |
 | `lib/cloud_access.dart` | Anonymous sign-in gate for cloud-only screens |
+| `lib/error_reporter.dart` | Global uncaught-error reporting and copy/share screen |
 | `lib/splash.dart` | Startup UI, Firebase initialization, and Firestore persistence |
 | `lib/rig.dart` | Poses, animation frames, equipment hints, rig aliases, and canvas rendering |
 | `lib/parts_data.dart` | Sprite dimensions and joint-pivot coordinates |
@@ -64,5 +66,5 @@ The Firestore rules are the security boundary. Do not rely on hidden buttons or 
 - Add built-in timed routines with `Routine`/`RStep`; verify every referenced ID exists.
 - Keep health content cautious, sourced, and consistent with the in-app medical notice.
 - Review `PRIVACY.md` when introducing a new data field, analytics package, external service, or persisted user preference.
-- The CI workflow generates Android/Windows platform projects because those generated folders are ignored by Git. It builds APK and Windows ZIP artifacts; AAB output is conditional on signing secrets.
+- The CI workflow generates Android/Windows platform projects because those generated folders are ignored by Git. Each push to `main` gets the next patch version and a GitHub Release; release workflows are queued to avoid duplicate versions. APK and Windows ZIP artifacts are built every time, while AAB output is conditional on signing secrets.
 

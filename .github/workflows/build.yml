@@ -1,10 +1,14 @@
 name: Build & Release
 on:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
+concurrency:
+  group: muslim-fit-pro-release
+  queue: max
 permissions:
-  contents: write
+  contents: read
 env:
   DEFINES: >-
     --dart-define=FB_API_KEY=${{ secrets.FB_API_KEY }}
@@ -12,9 +16,49 @@ env:
     --dart-define=FB_SENDER_ID=${{ secrets.FB_SENDER_ID }}
     --dart-define=FB_PROJECT_ID=${{ secrets.FB_PROJECT_ID }}
 jobs:
-  android:
+  validate-firebase-config:
     runs-on: ubuntu-latest
     env:
+      FB_API_KEY: ${{ secrets.FB_API_KEY }}
+      FB_APP_ID: ${{ secrets.FB_APP_ID }}
+      FB_SENDER_ID: ${{ secrets.FB_SENDER_ID }}
+      FB_PROJECT_ID: ${{ secrets.FB_PROJECT_ID }}
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+    steps:
+      - name: Validate required Firebase configuration
+        run: |
+          test -n "$FB_API_KEY" || { echo "::error::Missing required secret FB_API_KEY"; exit 1; }
+          test -n "$FB_APP_ID" || { echo "::error::Missing required secret FB_APP_ID"; exit 1; }
+          test -n "$FB_SENDER_ID" || { echo "::error::Missing required secret FB_SENDER_ID"; exit 1; }
+          test -n "$FB_PROJECT_ID" || { echo "::error::Missing required secret FB_PROJECT_ID"; exit 1; }
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] || [ -n "$ANDROID_KEYSTORE_PASSWORD" ] || [ -n "$ANDROID_KEY_PASSWORD" ] || [ -n "$ANDROID_KEY_ALIAS" ]; then
+            test -n "$ANDROID_KEYSTORE_BASE64" || { echo "::error::Missing optional signing secret ANDROID_KEYSTORE_BASE64"; exit 1; }
+            test -n "$ANDROID_KEYSTORE_PASSWORD" || { echo "::error::Missing optional signing secret ANDROID_KEYSTORE_PASSWORD"; exit 1; }
+            test -n "$ANDROID_KEY_PASSWORD" || { echo "::error::Missing optional signing secret ANDROID_KEY_PASSWORD"; exit 1; }
+            test -n "$ANDROID_KEY_ALIAS" || { echo "::error::Missing optional signing secret ANDROID_KEY_ALIAS"; exit 1; }
+          fi
+  version:
+    needs: validate-firebase-config
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: version
+        name: Determine release version
+        run: python3 scripts/next_version.py
+  android:
+    needs: version
+    runs-on: ubuntu-latest
+    env:
+      APP_VERSION: ${{ needs.version.outputs.version }}
+      BUILD_NUMBER: ${{ github.run_number }}
       HAS_KS: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
     steps:
       - uses: actions/checkout@v4
@@ -41,20 +85,23 @@ jobs:
           storeFile=$GITHUB_WORKSPACE/android/upload.jks
           KP
           python3 scripts/patch_android.py
-      - run: flutter build apk --release $DEFINES
+      - run: flutter build apk --release --build-name="$APP_VERSION" --build-number="$BUILD_NUMBER" --dart-define=APP_VERSION="$APP_VERSION" $DEFINES
       - name: Build AAB لـ Google Play
         if: env.HAS_KS == 'true'
-        run: flutter build appbundle --release $DEFINES
+        run: flutter build appbundle --release --build-name="$APP_VERSION" --build-number="$BUILD_NUMBER" --dart-define=APP_VERSION="$APP_VERSION" $DEFINES
       - run: |
           mkdir out-android
-          mv build/app/outputs/flutter-apk/app-release.apk out-android/Muslim-Fit-pro-Android.apk
-          if [ -f build/app/outputs/bundle/release/app-release.aab ]; then mv build/app/outputs/bundle/release/app-release.aab out-android/Muslim-Fit-pro-PlayStore.aab; fi
+          mv build/app/outputs/flutter-apk/app-release.apk "out-android/Muslim-Fit-pro-Android-$APP_VERSION.apk"
+          if [ -f build/app/outputs/bundle/release/app-release.aab ]; then mv build/app/outputs/bundle/release/app-release.aab "out-android/Muslim-Fit-pro-PlayStore-$APP_VERSION.aab"; fi
       - uses: actions/upload-artifact@v4
         with: { name: android, path: out-android/* }
   windows:
+    needs: version
     runs-on: windows-latest
     env:
       CMAKE_POLICY_VERSION_MINIMUM: '3.5'
+      APP_VERSION: ${{ needs.version.outputs.version }}
+      BUILD_NUMBER: ${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -67,18 +114,21 @@ jobs:
         continue-on-error: true
       - run: sed -i 's/L"muslim_fit_pro"/L"Muslim-Fit-pro"/' windows/runner/main.cpp
         shell: bash
-      - run: flutter build windows --release $DEFINES
+      - run: flutter build windows --release --build-name="$APP_VERSION" --build-number="$BUILD_NUMBER" --dart-define=APP_VERSION="$APP_VERSION" $DEFINES
         shell: bash
-      - run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath Muslim-Fit-pro-Windows.zip
+      - run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "Muslim-Fit-pro-Windows-$($env:APP_VERSION).zip"
       - uses: actions/upload-artifact@v4
-        with: { name: windows, path: Muslim-Fit-pro-Windows.zip }
+        with: { name: windows, path: 'Muslim-Fit-pro-Windows-${{ needs.version.outputs.version }}.zip' }
   release:
-    needs: [android, windows]
+    needs: [android, windows, version]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with: { path: out, merge-multiple: true }
       - uses: softprops/action-gh-release@v2
         with:
           files: out/*
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          name: Muslim-Fit-pro ${{ needs.version.outputs.tag }}
+          tag_name: ${{ needs.version.outputs.tag }}

@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'cloud_access.dart';
 import 'data.dart';
+import 'error_reporter.dart';
 import 'main.dart';
 import 'player.dart';
 
@@ -33,8 +34,7 @@ class _RestTimerState extends State<RestTimer> {
   }
 
   @override
-  Widget build(BuildContext c) => CloudAccessGate(
-      builder: (user) => Card(
+  Widget build(BuildContext c) => Card(
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(children: [
@@ -70,8 +70,17 @@ class LogSet extends StatefulWidget {
 
 class _LogSetState extends State<LogSet> {
   final reps = TextEditingController(), kg = TextEditingController();
+
   @override
-  Widget build(BuildContext c) => Card(
+  void dispose() {
+    reps.dispose();
+    kg.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext c) => CloudAccessGate(
+      builder: (user) => Card(
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(children: [
@@ -81,13 +90,23 @@ class _LogSetState extends State<LogSet> {
             const SizedBox(width: 8),
             FilledButton(
               onPressed: () {
-                final r = int.tryParse(reps.text), w = double.tryParse(kg.text) ?? 0;
-                if (r == null || r <= 0 || r > 1000 || w < 0 || w > 1000) return;
                 final msg = ScaffoldMessenger.of(c);
+                final r = int.tryParse(reps.text.trim());
+                if (r == null || r <= 0 || r > 1000) {
+                  msg.showSnackBar(const SnackBar(content: Text('أدخل عدد عدّات من 1 إلى 1000')));
+                  return;
+                }
+                final weightText = kg.text.trim();
+                final w = weightText.isEmpty ? 0.0 : double.tryParse(weightText);
+                if (w == null || !w.isFinite || w < 0 || w > 1000) {
+                  msg.showSnackBar(const SnackBar(content: Text('أدخل وزنًا صحيحًا من 0 إلى 1000 كجم')));
+                  return;
+                }
                 FirebaseFirestore.instance.collection('logs').add({
                   'owner': user.uid, 'ex': widget.e.id, 'reps': r, 'kg': w, 'at': FieldValue.serverTimestamp(),
-                }).then((_) {}, onError: (e) {
-                  if (c.mounted) msg.showSnackBar(SnackBar(content: Text('تعذر حفظ السجل: $e')));
+                }).then<void>((_) {}, onError: (Object error, StackTrace stackTrace) {
+                  reportAppError(error, stackTrace, source: 'Saving workout log');
+                  if (c.mounted) msg.showSnackBar(SnackBar(content: Text('تعذر حفظ السجل: $error')));
                 });
                 reps.clear();
                 kg.clear();
@@ -108,12 +127,22 @@ class ProgressPage extends StatelessWidget {
       builder: (user) => StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('logs').where('owner', isEqualTo: user.uid).snapshots(),
         builder: (_, s) {
-          if (s.hasError) return Center(child: Text('تعذر التحميل: ${s.error}'));
+          if (s.hasError) {
+            reportAppErrorAfterFrame(s.error!, source: 'Loading workout progress');
+            return Center(child: Text('تعذر التحميل: ${s.error}'));
+          }
           if (!s.hasData) return const Center(child: CircularProgressIndicator());
-          final logs = s.data!.docs.map((d) => d.data() as Map<String, dynamic>).where((m) => m['at'] != null).toList()
+          final logs = s.data!.docs.map((d) => d.data() as Map<String, dynamic>).where((m) {
+            final at = m['at'], reps = m['reps'], kg = m['kg'];
+            return at is Timestamp && reps is num && reps.isFinite && kg is num && kg.isFinite && m['ex'] is String;
+          }).toList()
             ..sort((a, b) => (b['at'] as Timestamp).compareTo(a['at'] as Timestamp));
           if (logs.isEmpty) return const Center(child: Text('سجّل أول مجموعة من صفحة أي تمرين'));
-          final vol = logs.fold<double>(0, (p, m) => p + (m['reps'] as num) * ((m['kg'] as num) == 0 ? 1 : m['kg'] as num));
+          final vol = logs.fold<double>(0, (p, m) {
+            final reps = (m['reps'] as num).toDouble();
+            final kg = (m['kg'] as num).toDouble();
+            return p + reps * (kg == 0 ? 1.0 : kg);
+          });
           final now = DateTime.now();
           final days = List.generate(7, (i) {
             final d = now.subtract(Duration(days: 6 - i));
@@ -209,8 +238,9 @@ class PlansPage extends StatelessWidget {
                         FirebaseFirestore.instance.collection('sets').add({
                           'name': '${p.name} • ${d.key}', 'ids': d.value, 'public': false, 'owner': user.uid,
                           'at': FieldValue.serverTimestamp(),
-                        }).then((_) {}, onError: (e) {
-                          if (c.mounted) msg.showSnackBar(SnackBar(content: Text('تعذر الحفظ: $e')));
+                        }).then<void>((_) {}, onError: (Object error, StackTrace stackTrace) {
+                          reportAppError(error, stackTrace, source: 'Saving a training-plan set');
+                          if (c.mounted) msg.showSnackBar(SnackBar(content: Text('تعذر الحفظ: $error')));
                         });
                         msg.showSnackBar(const SnackBar(content: Text('حُفظت محليًا وستتم المزامنة عند توفر الإنترنت')));
                       },

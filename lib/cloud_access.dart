@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'error_reporter.dart';
 
 class CloudAccessGate extends StatefulWidget {
   final Widget Function(User user) builder;
@@ -22,6 +23,7 @@ class _CloudAccessGateState extends State<CloudAccessGate> {
     try {
       await FirebaseAuth.instance.signInAnonymously();
     } on FirebaseAuthException catch (e) {
+      reportAppError(e, StackTrace.current, source: 'Firebase anonymous sign-in');
       if (mounted) setState(() => _error = 'تعذر الاتصال (${e.code}). تحقق من الإنترنت ثم أعد المحاولة.');
     } finally {
       if (mounted) setState(() => _connecting = false);
@@ -33,6 +35,7 @@ class _CloudAccessGateState extends State<CloudAccessGate> {
         stream: FirebaseAuth.instance.authStateChanges(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
+            reportAppErrorAfterFrame(snapshot.error!, source: 'Checking cloud sign-in');
             return const Center(child: Text('تعذر التحقق من تسجيل الدخول للخدمات السحابية'));
           }
           if (snapshot.connectionState == ConnectionState.waiting && snapshot.data == null) {

@@ -13,6 +13,7 @@
 - ستة روتينات جاهزة ومشغّل بفترة استعداد ومؤقت وانتقال تلقائي، إضافة إلى ثلاث خطط تدريب.
 - إنشاء مجموعات شخصية من التمارين، ومؤقت راحة، وتسجيل المجموعات وعرض التقدم.
 - قسم تغذية تفاعلي بخطط مرنة لأهداف متعددة، بما فيها الرياضة والصيام؛ مع مصادر وتنبيهات صحية.
+- شاشة أخطاء عامة تعرض تفاصيل الاستثناء ومسار التتبع، مع نسخ التقرير أو مشاركته.
 - واجهة عربية من اليمين إلى اليسار، ووضع فاتح/داكن.
 
 ## المنصات والتقنيات
@@ -25,6 +26,7 @@
 | البيانات السحابية | Cloud Firestore |
 | الحركة ومنع إطفاء الشاشة | رسوم Rig محلية و`wakelock_plus` |
 | الروابط الخارجية | `url_launcher` |
+| مشاركة تقارير الأخطاء | `share_plus` |
 
 بيانات التمارين والخطط والتغذية مضمنة محليًا. لا يحتاج تصفحها أو تشغيل الروتينات الجاهزة إلى اتصال بالإنترنت، لكن يحتاج التطبيق إلى إعداد Firebase عند البناء والتهيئة. تسجيل الدخول المجهول والبيانات السحابية يحتاجان اتصالًا عند استخدامهما أول مرة؛ وبعد تسجيل الدخول، يخزن Firestore التغييرات محليًا لمزامنتها عند عودة الاتصال.
 
@@ -90,6 +92,7 @@ flutter build windows --release \
 | [`lib/rig.dart`](./lib/rig.dart) و[`lib/parts_data.dart`](./lib/parts_data.dart) | رسوم الشخصيات، إطارات الحركة ومحاور الأجزاء |
 | [`lib/splash.dart`](./lib/splash.dart) | شاشة البداية وتهيئة Firebase وتفعيل التخزين المحلي لـFirestore |
 | [`lib/cloud_access.dart`](./lib/cloud_access.dart) | بوابة تسجيل الدخول عند فتح ميزات السحابة |
+| [`lib/error_reporter.dart`](./lib/error_reporter.dart) | التقاط أخطاء Flutter/Dart وعرض تقرير قابل للنسخ والمشاركة |
 | [`firestore.rules`](./firestore.rules) | صلاحيات القراءة والكتابة لمجموعات Firestore |
 | [`.github/workflows/build.yml`](./.github/workflows/build.yml) | بناء Android وWindows وإرفاق المخرجات بالإصدار |
 | [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) | تدفق التطبيق ونموذج البيانات |
@@ -117,14 +120,16 @@ flutter build windows --release \
 
 ## الإصدارات
 
-سير العمل في [`.github/workflows/build.yml`](./.github/workflows/build.yml) يعمل عند دفع tag يبدأ بـ`v` أو عند تشغيله يدويًا:
+سير العمل في [`.github/workflows/build.yml`](./.github/workflows/build.yml) يبني التطبيق وينشئ GitHub Release تلقائيًا عند كل commit يُدفع إلى `main`. كما يعمل عند دفع tag إصدار ثابت بصيغة `vX.Y.Z` أو تشغيله يدويًا:
 
-1. يجهز ملفات Android وWindows ويستعيد الحزم.
-2. يبني APK وملف Windows ZIP.
+1. يزيد رقم `patch` تلقائيًا اعتمادًا على أحدث tag إصدار ثابت؛ يبدأ من نسخة `pubspec.yaml` إذا لم توجد tags إصدارات بعد.
+2. يجهز ملفات Android وWindows، ثم يبني APK وملف Windows ZIP باسم الإصدار. رقم بناء Android هو رقم تشغيل GitHub Actions.
 3. يبني Android App Bundle إذا كانت أسرار التوقيع التالية موجودة: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_PASSWORD`, `ANDROID_KEY_ALIAS`.
-4. يرفع المخرجات إلى GitHub Release.
+4. ينشئ tag وGitHub Release جديدين مثل `v1.2.1` ويرفع المخرجات إليه. تُسلسل عمليات الإصدار لتجنب تكرار أرقام النسخ عند وصول commits متقاربة.
 
-لإنشاء إصدار، حدّث رقم الإصدار في [`pubspec.yaml`](./pubspec.yaml) و[`lib/app_info.dart`](./lib/app_info.dart)، ثم ادفع tag مثل `v1.3.0`. معرّف Android الحالي `com.muslimfit.muslim_fit_pro`؛ لا تغيّره بعد النشر إلى المتجر.
+يلزم ضبط أسرار Firebase الأربعة `FB_API_KEY`, `FB_APP_ID`, `FB_SENDER_ID`, `FB_PROJECT_ID` في GitHub Actions؛ يتوقف البناء برسالة واضحة إذا غاب أحدها. عند إصدار major/minor جديد، حدّث النسخة الأساسية في [`pubspec.yaml`](./pubspec.yaml)؛ رقم الإصدار المعروض داخل التطبيق يُمرر تلقائيًا أثناء بناء الإصدار.
+
+معرّف Android الحالي `com.muslimfit.muslim_fit_pro`؛ لا تغيّره بعد النشر إلى المتجر.
 
 ## تنبيهات
 

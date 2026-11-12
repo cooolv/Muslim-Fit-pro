@@ -193,7 +193,7 @@ _Geo _geo(Pose p, Rig r) {
     ..._corners('foot', ankle, p.ft), ..._corners('foot', ankle2, p.ft2), ..._corners('hand', wrist, hand),
     hip + const Offset(0, 13), neck + const Offset(0, 13), knee + const Offset(0, 9), knee2 + const Offset(0, 9), elbow + const Offset(0, 7),
   ];
-  final ground = contact.map((o) => o.dy).reduce(m.max);
+  final ground = contact.map((o) => o.dy).reduce((a, b) => m.max(a, b).toDouble());
   final ax = r.anchorHip ? 0.0 : ankle.dx;
   final b = all.fold<Rect?>(null, (a, o) => a == null ? Rect.fromLTWH(o.dx, o.dy, 0, 0) : a.expandToInclude(Rect.fromLTWH(o.dx, o.dy, 0, 0)))!;
   return _Geo(parts, ankle, wrist, hand, ground, ax, b.shift(Offset(-ax, -ground)));
@@ -254,7 +254,7 @@ class _P extends CustomPainter {
   void paint(Canvas cv, Size sz) {
     final g = _geo(_at(r, t), r);
     final u = r.frames.map((f) => _geo(f, r).bounds).reduce((a, b) => a.expandToInclude(b)).inflate(6); // إطار ثابت للحركة كلها
-    final k = m.min(sz.width / u.width, sz.height / u.height);
+    final k = m.min(sz.width / u.width, sz.height / u.height).toDouble();
     cv.save();
     cv.translate(sz.width / 2 - k * u.center.dx, sz.height / 2 - k * u.center.dy);
     cv.scale(k);

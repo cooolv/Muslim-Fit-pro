@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'app_info.dart';
+import 'error_reporter.dart';
 import 'main.dart';
 
 /// يشغّل Firebase خلف شاشة البداية (3.2 ثانية على الأقل) ثم يفتح التطبيق
@@ -16,7 +17,12 @@ class Boot extends StatefulWidget {
 class _BootState extends State<Boot> {
   late Future<void> _f = _init();
   Future<void> _init() async {
-    await Future.wait([_fb(), Future.delayed(const Duration(milliseconds: 3200))]);
+    try {
+      await Future.wait([_fb(), Future.delayed(const Duration(milliseconds: 3200))]);
+    } catch (error, stackTrace) {
+      reportAppError(error, stackTrace, source: 'Firebase startup');
+      rethrow;
+    }
   }
 
   Future<void> _fb() async {
