@@ -126,7 +126,7 @@ class ProgressPage extends StatelessWidget {
   Widget build(BuildContext c) => CloudAccessGate(
       builder: (user) => StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
-            .collection<Map<String, dynamic>>('logs')
+            .collection('logs')
             .where('owner', isEqualTo: user.uid)
             .snapshots(),
         builder: (_, s) {
