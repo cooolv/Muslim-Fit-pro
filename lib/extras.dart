@@ -124,31 +124,32 @@ class ProgressPage extends StatelessWidget {
   const ProgressPage({super.key});
   @override
   Widget build(BuildContext c) => CloudAccessGate(
-      builder: (user) => StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('logs').where('owner', isEqualTo: user.uid).snapshots(),
+      builder: (user) => StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+        stream: FirebaseFirestore.instance
+            .collection<Map<String, dynamic>>('logs')
+            .where('owner', isEqualTo: user.uid)
+            .snapshots(),
         builder: (_, s) {
           if (s.hasError) {
             reportAppErrorAfterFrame(s.error!, source: 'Loading workout progress');
             return Center(child: Text('تعذر التحميل: ${s.error}'));
           }
           if (!s.hasData) return const Center(child: CircularProgressIndicator());
-          final logs = s.data!.docs.map((d) => d.data() as Map<String, dynamic>).where((m) {
-            final at = m['at'], reps = m['reps'], kg = m['kg'];
-            return at is Timestamp && reps is num && reps.isFinite && kg is num && kg.isFinite && m['ex'] is String;
-          }).toList()
-            ..sort((a, b) => (b['at'] as Timestamp).compareTo(a['at'] as Timestamp));
+          final logs = <_WorkoutLog>[];
+          for (final doc in s.data!.docs) {
+            final log = _WorkoutLog.tryParse(doc.data());
+            if (log != null) logs.add(log);
+          }
+          logs.sort((a, b) => b.at.compareTo(a.at));
           if (logs.isEmpty) return const Center(child: Text('سجّل أول مجموعة من صفحة أي تمرين'));
-          final vol = logs.fold<double>(0, (p, m) {
-            final reps = (m['reps'] as num).toDouble();
-            final kg = (m['kg'] as num).toDouble();
-            return p + reps * (kg == 0 ? 1.0 : kg);
+          final vol = logs.fold<double>(0, (p, log) {
+            return p + log.reps * (log.kg == 0 ? 1.0 : log.kg);
           });
           final now = DateTime.now();
           final days = List.generate(7, (i) {
             final d = now.subtract(Duration(days: 6 - i));
-            return logs.where((m) {
-              final t = (m['at'] as Timestamp).toDate();
-              return t.year == d.year && t.month == d.month && t.day == d.day;
+            return logs.where((log) {
+              return log.at.year == d.year && log.at.month == d.month && log.at.day == d.day;
             }).length;
           });
           final mx = days.reduce((a, b) => a > b ? a : b).clamp(1, 9999);
@@ -178,15 +179,55 @@ class ProgressPage extends StatelessWidget {
               ]),
             ),
             const Divider(),
-            for (final m in logs.take(15))
+            for (final log in logs.take(15))
               ListTile(
                 dense: true,
-                title: Text(exercises.where((e) => e.id == m['ex']).map((e) => e.name).firstOrNull ?? '${m['ex']}'),
-                trailing: Text('${m['reps']} × ${m['kg']} كجم'),
+                title: Text(exercises.where((e) => e.id == log.exerciseId).map((e) => e.name).firstOrNull ?? log.exerciseId),
+                trailing: Text('${log.reps} × ${log.kg} كجم'),
               ),
           ]);
         },
       ));
+}
+
+class _WorkoutLog {
+  final String exerciseId;
+  final double reps, kg;
+  final DateTime at;
+
+  const _WorkoutLog({
+    required this.exerciseId,
+    required this.reps,
+    required this.kg,
+    required this.at,
+  });
+
+  static _WorkoutLog? tryParse(Map<String, dynamic> data) {
+    final exerciseId = data['ex'];
+    final reps = data['reps'];
+    final kg = data['kg'];
+    final timestamp = data['at'];
+    if (exerciseId is! String ||
+        exerciseId.isEmpty ||
+        reps is! num ||
+        kg is! num ||
+        !reps.isFinite ||
+        !kg.isFinite ||
+        reps < 0 ||
+        reps > 1000 ||
+        kg < 0 ||
+        kg > 1000 ||
+        timestamp is! Timestamp) {
+      return null;
+    }
+
+    return _WorkoutLog(
+      exerciseId: exerciseId,
+      reps: reps.toDouble(),
+      kg: kg.toDouble(),
+      at: timestamp.toDate(),
+    );
+  }
 }
 
 class _Stat extends StatelessWidget {

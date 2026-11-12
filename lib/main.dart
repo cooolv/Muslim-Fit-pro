@@ -34,6 +34,18 @@ void main() {
         source: details.library ?? 'Flutter framework',
       );
     };
+    ErrorWidget.builder = (details) {
+      reportAppErrorAfterFrame(
+        details.exception,
+        source: details.library ?? 'Flutter widget build',
+        stackTrace: details.stack,
+      );
+      return const Material(
+        child: Center(
+          child: Text('حدث خطأ أثناء عرض هذه الصفحة. جارٍ تجهيز تقرير الخطأ...'),
+        ),
+      );
+    };
     ui.PlatformDispatcher.instance.onError = (error, stackTrace) {
       reportAppError(error, stackTrace, source: 'Platform dispatcher');
       return true;

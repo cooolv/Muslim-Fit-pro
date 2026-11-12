@@ -33,10 +33,10 @@ void reportAppError(Object error, StackTrace stackTrace, {required String source
   globalErrorReport.value = AppErrorReport(error: error, stackTrace: stackTrace, source: source);
 }
 
-void reportAppErrorAfterFrame(Object error, {required String source}) {
-  final stackTrace = StackTrace.current;
+void reportAppErrorAfterFrame(Object error, {required String source, StackTrace? stackTrace}) {
+  final capturedStackTrace = stackTrace ?? StackTrace.current;
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    reportAppError(error, stackTrace, source: source);
+    reportAppError(error, capturedStackTrace, source: source);
   });
 }
 
